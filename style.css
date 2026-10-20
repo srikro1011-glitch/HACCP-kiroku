@@ -1,0 +1,64 @@
+:root{
+  --bg:#f2f5f3; --card:#fff; --fg:#1b2721; --muted:#5f6f67; --line:#d3ddd7;
+  --accent:#1f7a5a; --accent-soft:#e1f1e9; --ng:#c0392b; --ng-soft:#fbe9e7; --todo:#b26a00; --todo-soft:#fff3df;
+  font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111714; --card:#1a231f; --fg:#e3ebe6; --muted:#9caea5; --line:#2e3c35;
+  --accent:#5cc79c; --accent-soft:#1e382c; --ng:#ff8a7a; --ng-soft:#3a1f1c; --todo:#f2b45a; --todo-soft:#3a2c14; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-size:16px;line-height:1.6;padding-bottom:env(safe-area-inset-bottom)}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.wide{max-width:1100px}
+.stack{display:flex;flex-direction:column;gap:12px}
+main.wrap{padding-block:16px 40px}
+.row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.top{background:var(--accent);color:var(--card);padding-block:calc(10px + env(safe-area-inset-top)) 10px;position:sticky;top:0;z-index:5}
+.store{font-size:1.25rem;font-weight:700}
+.sub{font-size:.8rem;opacity:.85}
+.top input{font:inherit;border:0;border-radius:8px;padding:6px 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.lbl{font-size:.8rem;color:var(--muted);font-weight:700}
+select,input,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%}
+textarea{min-height:4em}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+.tabs{display:flex;gap:6px}
+.tabs button{flex:1;font:inherit;font-weight:700;padding:10px 4px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg)}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--card);border-color:var(--accent)}
+.seg{display:flex;gap:6px}
+.seg button{font:inherit;font-weight:700;min-width:56px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.okng button[data-v="0"][aria-pressed="true"]{background:var(--ng-soft);border-color:var(--ng);color:var(--ng)}
+.item{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.item.ng{border-color:var(--ng);background:var(--ng-soft)}
+.item .row{flex-wrap:nowrap}
+.name{font-weight:700;min-width:0}
+.name small{display:block;font-weight:400;color:var(--muted);font-size:.8rem}
+.tempin{display:flex;align-items:center;gap:6px}
+.tempin input{font-size:1.4rem;max-width:140px}
+.primary{font:inherit;font-weight:700;font-size:1.05rem;background:var(--accent);color:var(--card);border:0;border-radius:12px;padding:14px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{font-size:.85rem;font-weight:700;border-radius:99px;padding:2px 10px}
+.chip.done{background:var(--accent-soft);color:var(--accent)}
+.chip.todo{background:var(--todo-soft);color:var(--todo)}
+.msg{font-weight:700;margin:0;min-height:1.6em}
+.msg.bad{color:var(--ng)} .msg.good{color:var(--accent)}
+/* 管理画面 */
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums;width:100%}
+th,td{border:1px solid var(--line);padding:4px 6px;text-align:center;white-space:nowrap}
+th{background:var(--bg)}
+td.left{text-align:left;white-space:normal}
+td.ng,span.ng{color:var(--ng);font-weight:700;background:var(--ng-soft)}
+td.miss{background:var(--todo-soft);color:var(--todo)}
+td.ok{color:var(--accent)}
+h2{font-size:1.05rem;margin:0}
+@media print{
+  .top,.noprint{display:none!important}
+  body{background:#fff;color:#000}
+  .card{border:0;padding:0}
+  section.printpage{page-break-after:always}
+  table{font-size:9pt}
+}

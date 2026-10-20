@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HACCP記録 管理</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap wide row"><div><div class="store">HACCP記録 管理</div><div class="sub">全店の入力状況と月の記録表</div></div></div>
+</header>
+
+<main class="wrap wide stack">
+  <section class="card row noprint">
+    <div style="flex:1;min-width:140px"><label class="lbl" for="pin">暗証番号</label><input id="pin" type="password" inputmode="numeric"></div>
+    <div style="flex:1;min-width:140px"><label class="lbl" for="ym">月</label><input id="ym" type="month"></div>
+    <div style="flex:1;min-width:140px"><label class="lbl" for="store">店舗</label><select id="store"><option value="">全店</option></select></div>
+    <button type="button" class="primary" id="load">表示</button>
+  </section>
+
+  <nav class="tabs noprint" role="tablist">
+    <button type="button" data-tab="status" aria-selected="true">入力状況</button>
+    <button type="button" data-tab="ng">基準外・✕</button>
+    <button type="button" data-tab="sheet">月の記録表</button>
+  </nav>
+
+  <p id="msg" class="msg noprint" aria-live="polite"></p>
+  <div id="out" class="stack"></div>
+  <div class="row noprint" id="tools" hidden>
+    <button type="button" class="primary" id="print">印刷・PDFにする</button>
+    <button type="button" class="primary" id="csv">CSVで書き出す</button>
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let data = null, tab = "status";
+const msg = (t, bad) => { $("msg").textContent = t; $("msg").className = "msg noprint" + (bad ? " bad" : ""); };
+$("ym").value = jstDate().slice(0, 7);
+try { $("pin").value = localStorage.getItem("haccp_pin") || ""; } catch (e) {}
+
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  tab = b.dataset.tab; render();
+}));
+
+function days(ym) {
+  const [y, m] = ym.split("-").map(Number), n = new Date(y, m, 0).getDate();
+  return Array.from({ length: n }, (_, i) => `${ym}-${String(i + 1).padStart(2, "0")}`);
+}
+const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
+const youbi = d => "日月火水木金土"[new Date(d + "T00:00:00").getDay()];
+
+async function load() {
+  const ym = $("ym").value; if (!ym) return;
+  const dd = days(ym);
+  msg("読み込み中…");
+  try {
+    data = await sbRpc("admin_logs", { p_pin: $("pin").value, p_from: dd[0], p_to: dd[dd.length - 1] });
+    try { localStorage.setItem("haccp_pin", $("pin").value); } catch (e) {}
+    const cur = $("store").value;
+    $("store").innerHTML = `<option value="">全店</option>` + data.stores.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
+    $("store").value = cur;
+    msg(""); render();
+  } catch (e) { data = null; $("out").innerHTML = ""; $("tools").hidden = true; msg(e.message.includes("暗証番号") ? "暗証番号が違います。" : "読み込めませんでした：" + e.message, true); }
+}
+$("load").addEventListener("click", load);
+$("store").addEventListener("change", render);
+
+function storesShown() { const s = $("store").value; return data.stores.filter(x => !s || x.id === s); }
+const by = (arr, st, d) => arr.filter(r => r.store_id === st && r.log_date === d);
+
+function render() {
+  if (!data) return;
+  const dd = days($("ym").value), today = jstDate();
+  let h = "";
+  for (const st of storesShown()) {
+    const fr = data.fridges.filter(f => f.store_id === st.id);
+    if (tab === "status") {
+      h += `<section class="card stack"><h2>${esc(st.name)}</h2><div class="scroll"><table><tr><th>日</th><th>温度 朝</th><th>温度 夕</th><th>毎日の衛生</th><th>健康チェック</th></tr>`;
+      for (const d of dd) {
+        if (d > today) break;
+        const t = by(data.temp, st.id, d), dl = by(data.daily, st.id, d), hl = by(data.health, st.id, d);
+        const tc = s => { const r = t.filter(x => x.slot === s); const n = new Set(r.map(x => x.fridge_id)).size;
+          if (!n) return `<td class="miss">未</td>`; if (r.some(x => !x.ok)) return `<td class="ng">基準外あり</td>`;
+          return n >= fr.length ? `<td class="ok">済</td>` : `<td class="miss">${n}/${fr.length}</td>`; };
+        const items = new Set(dl.map(x => x.item));
+        const dc = !items.size ? `<td class="miss">未</td>` : dl.some(x => !x.ok) ? `<td class="ng">✕あり</td>` : items.size >= DAILY_ITEMS.length ? `<td class="ok">済</td>` : `<td class="miss">${items.size}/${DAILY_ITEMS.length}</td>`;
+        const people = [...new Set(hl.map(x => x.staff_name))];
+        const hc = !people.length ? `<td class="miss">未</td>` : `<td class="${hl.some(x => !x.ok) ? "ng" : "ok"}">${people.length}人</td>`;
+        h += `<tr><td>${md(d)}(${youbi(d)})</td>${tc("朝")}${tc("夕")}${dc}${hc}</tr>`;
+      }
+      h += `</table></div></section>`;
+    }
+    if (tab === "ng") {
+      const rows = [
+        ...data.temp.filter(r => r.store_id === st.id && !r.ok).map(r => [r.log_date, `温度 ${r.slot}`, `${(fr.find(f => f.id === r.fridge_id) || {}).name || ""} ${r.temp}℃`, r.action, r.staff_name]),
+        ...data.daily.filter(r => r.store_id === st.id && !r.ok).map(r => [r.log_date, "毎日の衛生", r.item, r.action, r.staff_name]),
+        ...data.health.filter(r => r.store_id === st.id && !r.ok).map(r => [r.log_date, "健康", Object.keys(r.items).filter(k => !r.items[k]).join("、"), r.action, r.staff_name])
+      ].sort((a, b) => a[0].localeCompare(b[0]));
+      h += `<section class="card stack"><h2>${esc(st.name)}（${rows.length}件）</h2>` + (rows.length ? `<div class="scroll"><table><tr><th>日</th><th>種類</th><th>内容</th><th>したこと</th><th>記入者</th></tr>`
+        + rows.map(r => `<tr><td>${md(r[0])}</td><td>${esc(r[1])}</td><td class="left">${esc(r[2])}</td><td class="left">${esc(r[3])}</td><td>${esc(r[4])}</td></tr>`).join("") + `</table></div>` : `<p class="hint">ありません</p>`) + `</section>`;
+    }
+    if (tab === "sheet") {
+      // 温度（庫×朝夕）
+      h += `<section class="card stack printpage"><h2>${esc(st.name)} 温度記録 ${$("ym").value}</h2><div class="scroll"><table><tr><th rowspan="2">日</th>`
+        + fr.map(f => `<th colspan="2">${esc(f.name)}<br><small>${f.max_temp}℃以下</small></th>`).join("") + `<th rowspan="2">記入者</th></tr><tr>` + fr.map(() => `<th>朝</th><th>夕</th>`).join("") + `</tr>`;
+      for (const d of dd) {
+        const t = by(data.temp, st.id, d);
+        const cell = (f, s) => { const r = t.filter(x => x.fridge_id === f.id && x.slot === s).pop(); return r ? `<td class="${r.ok ? "" : "ng"}">${r.temp}</td>` : `<td></td>`; };
+        h += `<tr><td>${md(d)}(${youbi(d)})</td>` + fr.map(f => cell(f, "朝") + cell(f, "夕")).join("") + `<td>${esc([...new Set(t.map(x => x.staff_name))].join("、"))}</td></tr>`;
+      }
+      h += `</table></div></section>`;
+      // 一般衛生（日×項目）
+      h += `<section class="card stack printpage"><h2>${esc(st.name)} 一般衛生管理の実施記録 ${$("ym").value}</h2><div class="scroll"><table><tr><th>日</th>`
+        + DAILY_ITEMS.map(i => `<th style="white-space:normal;min-width:5em">${esc(i.key)}</th>`).join("") + `<th>特記事項</th><th>記入者</th></tr>`;
+      for (const d of dd) {
+        const dl = by(data.daily, st.id, d);
+        const last = k => dl.filter(x => x.item === k).pop();
+        const notes = dl.filter(x => !x.ok).map(x => `${x.item}：${x.action}`);
+        h += `<tr><td>${md(d)}(${youbi(d)})</td>` + DAILY_ITEMS.map(i => { const r = last(i.key); return r ? (r.ok ? `<td>○</td>` : `<td class="ng">✕</td>`) : `<td></td>`; }).join("")
+          + `<td class="left">${esc(notes.join(" / "))}</td><td>${esc([...new Set(dl.map(x => x.staff_name))].join("、"))}</td></tr>`;
+      }
+      h += `</table></div></section>`;
+      // 健康
+      const hl = data.health.filter(r => r.store_id === st.id);
+      h += `<section class="card stack printpage"><h2>${esc(st.name)} 従業員の健康チェック ${$("ym").value}</h2><div class="scroll"><table><tr><th>日</th><th>名前</th>`
+        + HEALTH_ITEMS.map(i => `<th style="white-space:normal;min-width:5em">${esc(i)}</th>`).join("") + `<th>対応</th></tr>`
+        + hl.map(r => `<tr><td>${md(r.log_date)}</td><td>${esc(r.staff_name)}</td>` + HEALTH_ITEMS.map(i => r.items[i] ? `<td>○</td>` : `<td class="ng">✕</td>`).join("") + `<td class="left">${esc(r.action)}</td></tr>`).join("")
+        + `</table></div>${hl.length ? "" : `<p class="hint">記録がありません</p>`}</section>`;
+    }
+  }
+  $("out").innerHTML = h || `<p class="hint">店舗がありません</p>`;
+  $("tools").hidden = false;
+}
+
+$("print").addEventListener("click", () => window.print());
+$("csv").addEventListener("click", () => {
+  if (!data) return;
+  const sname = id => (data.stores.find(s => s.id === id) || {}).name || id;
+  const fname = id => (data.fridges.find(f => f.id === id) || {}).name || id;
+  const show = new Set(storesShown().map(s => s.id));
+  const rows = [["店舗", "日付", "種類", "項目", "値", "判定", "したこと", "記入者", "記録時刻"]];
+  data.temp.filter(r => show.has(r.store_id)).forEach(r => rows.push([sname(r.store_id), r.log_date, "温度 " + r.slot, fname(r.fridge_id), r.temp, r.ok ? "○" : "基準外", r.action || "", r.staff_name, r.created_at]));
+  data.daily.filter(r => show.has(r.store_id)).forEach(r => rows.push([sname(r.store_id), r.log_date, "毎日の衛生", r.item, "", r.ok ? "○" : "✕", r.action || "", r.staff_name, r.created_at]));
+  data.health.filter(r => show.has(r.store_id)).forEach(r => rows.push([sname(r.store_id), r.log_date, "健康", Object.keys(r.items).filter(k => !r.items[k]).join("、") || "全部○", "", r.ok ? "○" : "✕", r.action || "", r.staff_name, r.created_at]));
+  const csv = "﻿" + rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = `HACCP記録_${$("ym").value}.csv`; a.click();
+});
+if ($("pin").value) load();
+</script>
+</body>
+</html>
