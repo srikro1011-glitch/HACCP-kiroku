@@ -23,6 +23,7 @@
     <button type="button" data-tab="status" aria-selected="true">入力状況</button>
     <button type="button" data-tab="ng">基準外・✕</button>
     <button type="button" data-tab="sheet">月の記録表</button>
+    <button type="button" data-tab="settings">設定</button>
   </nav>
 
   <p id="msg" class="msg noprint" aria-live="polite"></p>
@@ -74,6 +75,7 @@ function storesShown() { const s = $("store").value; return data.stores.filter(x
 const by = (arr, st, d) => arr.filter(r => r.store_id === st && r.log_date === d);
 
 function render() {
+  if (tab === "settings") { renderSettings(); return; }
   if (!data) return;
   const dd = days($("ym").value), today = jstDate();
   let h = "";
@@ -136,6 +138,89 @@ function render() {
   $("out").innerHTML = h || `<p class="hint">店舗がありません</p>`;
   $("tools").hidden = false;
 }
+
+// ===== 設定（店・庫・スタッフ・暗証番号） =====
+const BASE = location.origin + location.pathname.replace(/admin\.html$/, "");
+async function renderSettings() {
+  $("tools").hidden = true;
+  if (!$("pin").value) { $("out").innerHTML = `<p class="hint">暗証番号を入れてください。</p>`; return; }
+  let m;
+  try { m = await sbRpc("admin_master", { p_pin: $("pin").value }); msg(""); }
+  catch (e) { $("out").innerHTML = ""; msg(e.message.includes("暗証番号") ? "暗証番号が違います。" : "読み込めませんでした：" + e.message, true); return; }
+  const on = a => a ? "checked" : "";
+  let h = "";
+  for (const st of m.stores) {
+    const url = BASE + "?store=" + st.id;
+    h += `<section class="card stack"><h2>${esc(st.name)}${st.active ? "" : "（使っていない）"}</h2>
+      <div class="hint">スタッフ用URL（QRの中身）：<span class="sel">${esc(url)}</span></div>
+      <div class="row"><input id="sn_${st.id}" value="${esc(st.name)}" aria-label="店の名前" style="flex:2;min-width:120px">
+        <input id="ss_${st.id}" type="number" value="${st.sort}" aria-label="並び順" style="flex:0 0 5em">
+        <label class="chk"><input type="checkbox" id="sa_${st.id}" ${on(st.active)}>使う</label>
+        <button type="button" class="small" data-save-store="${esc(st.id)}">店を保存</button></div>
+      <div class="lbl">冷蔵庫・冷凍庫</div>
+      <div class="scroll"><table><tr><th>名前</th><th>種類</th><th>基準（℃以下）</th><th>順</th><th>使う</th><th></th></tr>`
+      + m.fridges.filter(f => f.store_id === st.id).map(f => fridgeRow(f.id, st.id, f)).join("")
+      + fridgeRow("new_" + st.id, st.id, { name: "", kind: "冷蔵", max_temp: 10, sort: 0, active: true })
+      + `</table></div>
+      <div class="lbl">スタッフ</div>
+      <div class="scroll"><table><tr><th>名前</th><th>順</th><th>使う</th><th></th></tr>`
+      + m.staff.filter(x => x.store_id === st.id).map(x => staffRow(x.id, st.id, x)).join("")
+      + staffRow("new_" + st.id, st.id, { name: "", sort: 0, active: true })
+      + `</table></div></section>`;
+  }
+  h += `<section class="card stack"><h2>店を追加</h2>
+    <div class="row"><input id="ns_id" placeholder="ID（半角英字 例：shichi）" style="flex:1;min-width:140px">
+    <input id="ns_name" placeholder="店の名前 例：志知カフェ" style="flex:1;min-width:140px">
+    <button type="button" class="small" id="addStore">追加</button></div>
+    <p class="hint">IDはQRのURLの最後に入ります。あとから変えられないので、短い英字にしてください。</p></section>
+    <section class="card stack"><h2>暗証番号を変える</h2>
+    <div class="row"><input id="newpin" type="password" inputmode="numeric" placeholder="新しい暗証番号（4けた以上）" style="flex:1;min-width:160px">
+    <button type="button" class="small" id="chPin">変更</button></div></section>`;
+  $("out").innerHTML = h;
+}
+function fridgeRow(id, store, f) {
+  const isNew = String(id).startsWith("new_");
+  return `<tr><td><input id="fn_${id}" value="${esc(f.name)}" placeholder="${isNew ? "追加する庫の名前" : ""}"></td>
+    <td><select id="fk_${id}"><option ${f.kind === "冷蔵" ? "selected" : ""}>冷蔵</option><option ${f.kind === "冷凍" ? "selected" : ""}>冷凍</option></select></td>
+    <td><input id="fm_${id}" type="number" step="0.5" value="${f.max_temp}" style="width:6em"></td>
+    <td><input id="fs_${id}" type="number" value="${f.sort}" style="width:4em"></td>
+    <td><input type="checkbox" id="fa_${id}" ${f.active ? "checked" : ""}></td>
+    <td><button type="button" class="small" data-save-fridge="${id}" data-store="${esc(store)}">${isNew ? "追加" : "保存"}</button></td></tr>`;
+}
+function staffRow(id, store, x) {
+  const isNew = String(id).startsWith("new_");
+  return `<tr><td><input id="pn_${id}" value="${esc(x.name)}" placeholder="${isNew ? "追加する人の名前" : ""}"></td>
+    <td><input id="ps_${id}" type="number" value="${x.sort}" style="width:4em"></td>
+    <td><input type="checkbox" id="pa_${id}" ${x.active ? "checked" : ""}></td>
+    <td><button type="button" class="small" data-save-staff="${id}" data-store="${esc(store)}">${isNew ? "追加" : "保存"}</button></td></tr>`;
+}
+async function saveAnd(fn, args, done) {
+  try { await sbRpc(fn, { p_pin: $("pin").value, ...args }); msg(done); await renderSettings(); $("msg").className = "msg noprint good"; msg(done); }
+  catch (e) { msg("保存できませんでした：" + e.message, true); }
+}
+$("out").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || tab !== "settings") return;
+  const v = id => $(id).value.trim(), c = id => $(id).checked;
+  if (b.dataset.saveStore) { const id = b.dataset.saveStore;
+    if (!v("sn_" + id)) return msg("店の名前を入れてください。", true);
+    saveAnd("admin_save_store", { p_id: id, p_name: v("sn_" + id), p_sort: +v("ss_" + id) || 0, p_active: c("sa_" + id) }, "店を保存しました。"); }
+  if (b.dataset.saveFridge) { const id = b.dataset.saveFridge, isNew = id.startsWith("new_");
+    if (!v("fn_" + id)) return msg("庫の名前を入れてください。", true);
+    if (v("fm_" + id) === "") return msg("基準の温度を入れてください。", true);
+    saveAnd("admin_save_fridge", { p_id: isNew ? null : +id, p_store: b.dataset.store, p_name: v("fn_" + id), p_kind: v("fk_" + id), p_max: +v("fm_" + id), p_sort: +v("fs_" + id) || 0, p_active: c("fa_" + id) }, isNew ? "庫を追加しました。" : "庫を保存しました。"); }
+  if (b.dataset.saveStaff) { const id = b.dataset.saveStaff, isNew = id.startsWith("new_");
+    if (!v("pn_" + id)) return msg("名前を入れてください。", true);
+    saveAnd("admin_save_staff", { p_id: isNew ? null : +id, p_store: b.dataset.store, p_name: v("pn_" + id), p_sort: +v("ps_" + id) || 0, p_active: c("pa_" + id) }, isNew ? "スタッフを追加しました。" : "スタッフを保存しました。"); }
+  if (b.id === "addStore") {
+    if (!/^[a-z0-9_-]+$/.test(v("ns_id")) || !v("ns_name")) return msg("IDは半角英小文字で、名前も入れてください。", true);
+    saveAnd("admin_save_store", { p_id: v("ns_id"), p_name: v("ns_name"), p_sort: 0, p_active: true }, "店を追加しました。冷蔵庫・冷凍庫を登録してください。"); }
+  if (b.id === "chPin") {
+    const np = v("newpin"); if (np.length < 4) return msg("新しい暗証番号は4けた以上にしてください。", true);
+    sbRpc("admin_change_pin", { p_pin: $("pin").value, p_new: np }).then(() => {
+      $("pin").value = np; try { localStorage.setItem("haccp_pin", np); } catch (e) {}
+      msg("暗証番号を変えました。次からは新しい番号で開きます。"); $("newpin").value = "";
+    }).catch(err => msg("変えられませんでした：" + err.message, true)); }
+});
 
 $("print").addEventListener("click", () => window.print());
 $("csv").addEventListener("click", () => {
