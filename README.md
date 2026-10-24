@@ -1,8 +1,4 @@
-# HACCP記録
+# 棚卸し 棚マスタ
 
-リプラス各店のHACCP記録（冷蔵・冷凍庫の温度、一般衛生管理7項目、従業員の健康チェック）をスタッフがスマホで入力するアプリ。
-
-- スタッフ用: `/?store=sannomiya`
-- 管理用: `/admin.html`（暗証番号）
-- データ: Supabase（`db/supabase.sql`）
-- ビルド不要の静的サイト。Vercelはそのまま公開できる。
+棚卸しアプリの画面（`tanaoroshi/`）。データは Google Apps Script（tanaoroshi.gs）経由で「棚卸し 棚マスタ」シートに保存する。
+画面の元は wazamono-karte の `tanaoroshi.html`。直すときは両方に同じ変更を入れる。
