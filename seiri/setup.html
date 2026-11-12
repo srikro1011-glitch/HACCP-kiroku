@@ -1,25 +1,52 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>整理表ボタンの登録</title>
-<style>body{font-family:-apple-system,sans-serif;max-width:640px;margin:20px auto;padding:0 16px;line-height:1.7;color:#222}button{font-size:22px;padding:14px 24px;background:#f7a823;color:#fff;border:0;border-radius:10px;font-weight:bold;width:100%}textarea{width:100%;height:110px;font-size:12px}li{margin:6px 0}</style></head><body>
-<h1>整理表ボタンの登録（iPad）</h1>
-<h2>お気に入りのボタンで開く</h2>
-<p><button id="b" onclick="copyIt()">① ボタンの文をコピー</button></p>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>カウンター整理表ボタンの登録</title>
+<style>
+body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;max-width:680px;margin:20px auto;padding:0 16px;line-height:1.75;color:#222;background:#fff}
+h1{font-size:24px} h2{font-size:19px;border-left:6px solid #f7a823;padding-left:8px;margin-top:30px}
+.btn{display:block;width:100%;font-size:20px;padding:14px;background:#f7a823;color:#fff;border:0;border-radius:10px;font-weight:bold;text-align:center;text-decoration:none;cursor:pointer}
+a.drag{display:inline-block;padding:10px 20px;background:#f7a823;color:#fff;border-radius:8px;font-weight:bold;font-size:18px;text-decoration:none}
+textarea{width:100%;height:80px;font-size:12px;margin-top:8px}
+.box{background:#fff7e8;border:1px solid #f2d39a;border-radius:10px;padding:10px 14px}
+li{margin:6px 0} details{margin-top:30px} summary{font-weight:bold;cursor:pointer}
+.tabs{display:flex;gap:8px;margin:14px 0} .tabs a{flex:1;text-align:center;padding:10px;border:2px solid #f7a823;border-radius:8px;color:#c47a00;font-weight:bold;text-decoration:none}
+</style></head><body>
+<h1>カウンター整理表ボタンの登録</h1>
+<div class="box">食べログノートのタイムスケジュールを、カウンターを隣同士に並べ直した見やすい表（3枚）にして、PDFで出せるボタンです。<br>食べログにログインしているPCやiPadのブラウザに、ボタンを1回登録するだけで使えます。食べログの予約は読むだけで、書き換えません。</div>
+<div class="tabs"><a href="#pc">PCの人</a><a href="#ipad">iPadの人</a><a href="#use">使い方</a></div>
+
+<p><button class="btn" id="b" onclick="copyIt()">ボタンの文をコピー</button></p>
 <textarea id="t" readonly>javascript:(function(){var s=document.createElement(&#x27;script&#x27;);s.src=&#x27;https://replus-tanaoroshi.vercel.app/seiri/seiri.js?&#x27;+Date.now();document.body.appendChild(s)})();</textarea>
+
+<h2 id="pc">PC（Chrome・Edge）で登録</h2>
 <ol>
+<li>ブックマークバーを出す（Ctrl＋Shift＋B）</li>
+<li>下のオレンジのボタンを、ブックマークバーまでドラッグする<br><a class="drag" href="javascript:(function(){var s=document.createElement(&#x27;script&#x27;);s.src=&#x27;https://replus-tanaoroshi.vercel.app/seiri/seiri.js?&#x27;+Date.now();document.body.appendChild(s)})();">整理表</a></li>
+<li>うまくいかないときは、ブックマークバーで右クリック →「ページを追加」→ 名前「整理表」、URLに上でコピーした文を貼って保存</li>
+</ol>
+
+<h2 id="ipad">iPad（Safari）で登録</h2>
+<ol>
+<li>上の「ボタンの文をコピー」を押す</li>
 <li>このページで、共有ボタン →「ブックマークを追加」→ 名前「整理表」、場所「お気に入り」で保存</li>
-<li>ブックマーク一覧で「整理表」を長押し →「編集」→ アドレスを全部消して、コピーした文を貼り付けて保存</li>
-<li>Safariの設定で「お気に入りバー」を表示にする</li>
-<li>食べログノートのタイムスケジュールを開いて、お気に入りの「整理表」を押す</li>
+<li>左上のサイドバーボタン →「ブックマーク」→「お気に入り」→ 下の「編集」→「整理表」を押す → アドレスを全部消して、コピーした文を貼って「完了」</li>
+<li>iPadの「設定」→「Safari」→「お気に入りバーを表示」をオンにしておくと押しやすい</li>
 </ol>
-<h2 style="margin-top:28px">ホーム画面のボタン1個で開く（Userscriptsを使う）</h2>
+
+<h2 id="use">使い方（毎朝）</h2>
 <ol>
-<li>App Storeで「Userscripts」（無料）をインストール</li>
-<li>Userscriptsアプリを1回開いて、表示にしたがって保存先のフォルダを決める（「このiPad内」でOK）</li>
-<li>iPadの「設定」→「アプリ」→「Safari」→「機能拡張」→「Userscripts」をオン。許可するサイトに owner.tabelog.com を入れる（「すべてのWebサイト」でも動きます）</li>
-<li>下の「② スクリプトを入れる」を押す → 開いた画面で、アドレス欄の「ぁあ」（またはパズルのマーク）→「Userscripts」→「インストール」</li>
-<li>下の「③ 整理表を開く」を押す → 整理表が出たら、共有ボタン →「ホーム画面に追加」（「Webアプリとして開く」はオフのまま）</li>
+<li>食べログノートにログインして、タイムスケジュールを開く</li>
+<li>ブックマークの「整理表」を押す → 画面が整理表に変わる</li>
+<li>「PDFにする／印刷」を押す（iPadは印刷画面の共有から「ファイルに保存」でPDF）</li>
+<li>終わったら「食べログノートに戻る」</li>
 </ol>
-<p><a href="https://replus-tanaoroshi.vercel.app/seiri/tabelog-seiri.user.js" style="display:block;text-align:center;padding:14px;background:#fff;border:2px solid #f7a823;border-radius:10px;font-size:20px;font-weight:bold;color:#c47a00;text-decoration:none">② スクリプトを入れる</a></p>
-<p><a href="https://owner.tabelog.com/tn/time-schedule#seiri" style="display:block;text-align:center;padding:14px;background:#f7a823;border-radius:10px;font-size:20px;font-weight:bold;color:#fff;text-decoration:none">③ 整理表を開く</a></p>
-<p style="color:#666;font-size:14px">これでホーム画面のアイコンを押すと整理表が開き、開いている間は5分ごとに自動で更新されます。</p>
+<p>上の「◀ 前の日／次の日 ▶」でほかの日も見られます。カウンターの並べ直しは当日だけで、ほかの日は食べログの席のまま出ます。</p>
+
+<details><summary>iPadをホーム画面のアイコン1つで開きたいとき（Userscripts）</summary>
+<ol>
+<li>App Storeで「Userscripts」（無料）を入れて、1回開いて保存先を決める</li>
+<li>iPadの「設定」→「アプリ」→「Safari」→「機能拡張」→「Userscripts」をオン（許可するサイトに owner.tabelog.com）</li>
+<li><a href="https://replus-tanaoroshi.vercel.app/seiri/tabelog-seiri.user.js">スクリプトを開く</a> → アドレス欄の「ぁあ」かパズルのマーク →「Userscripts」→「インストール」</li>
+<li><a href="https://owner.tabelog.com/tn/time-schedule#seiri">整理表を開く</a> → 整理表が出たら、共有 →「ホーム画面に追加」</li>
+</ol></details>
+
 <script>function copyIt(){const t=document.getElementById('t');t.select();t.setSelectionRange(0,99999);(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).catch(()=>document.execCommand('copy')).finally(()=>{document.getElementById('b').textContent='コピーしました';});}</script>
 </body></html>
