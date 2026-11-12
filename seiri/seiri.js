@@ -166,7 +166,7 @@ function seiriBuild(norm) {
     sl.pt = sl.p - sl.pc; mx = Math.max(mx, sl.p); slots.push(sl);
   }
   slots.filter(x => x.g || x.in).forEach(x => {
-    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.p || ''}</td><td class="r">${x.pc || ''}</td><td class="r">${x.pt || ''}</td><td class="r">${x.in}</td><td><div class="hb" style="width:${mx ? x.p / mx * 60 : 0}px"></div></td></tr>`;
+    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.p || ''}</td><td class="r">${x.pc || ''}</td><td class="r">${x.pt || ''}</td><td class="r">${x.in}</td><td><div class="hb" style="width:${mx ? x.p / mx * 100 : 0}%"></div></td></tr>`;
   });
   const wd = '日月火水木金土'[new Date(norm.date + 'T00:00:00').getDay()];
   const [, mo, da] = norm.date.split('-').map(Number);
@@ -209,7 +209,15 @@ td.o{color:#999;text-decoration:line-through}
 td.n{color:#1d7a3a;font-weight:bold}
 .pg{page-break-before:always;break-before:page}
 .cols{display:flex;gap:12px;align-items:flex-start}
-.cols>.c1,.cols>.c2{flex:0 0 auto}
+.cols>.c1{flex:0 0 66%}
+.big1{font-size:26px}
+.bigt{border-collapse:collapse;width:100%}
+.bigt td,.bigt th{border:1px solid #bbb;padding:2px 10px;font-size:17px;text-align:right;white-space:nowrap}
+.bigt th{font-size:14px;text-align:center;background:#fff3dc}
+.bigt td:first-child{text-align:left;font-weight:bold;font-size:19px}
+.bigt td.b{font-size:24px;color:#c45a00}
+.bigt .bw{width:28%}
+.bigt .hb{height:16px}
 .cols>.c3{flex:1}
 .note{font-size:10px;color:#666;margin-top:2px}
 .p3t td,.p3t th{padding:1px 5px;font-size:11px;white-space:nowrap}
@@ -217,7 +225,7 @@ td.n{color:#1d7a3a;font-weight:bold}
 .hr{margin-bottom:6px}
 td.r{text-align:right}
 td.b{font-weight:bold}
-.hb{height:10px;background:#f7a823;border-radius:2px}
+.hb{height:10px;min-width:0;background:#f7a823;border-radius:2px}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar{display:none}body{padding:0}}
 </style></head><body>
@@ -233,14 +241,10 @@ ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで�
 <div class="legend"><span style="background:#dcecff;border:2px solid #3b7dd8"></span>1名<span style="background:#ffe2ad;border:2px solid #e8a33a"></span>2名<span style="background:#e6dcf7;border:2px solid #7d5bc4"></span>3名以上<span style="background:none;color:#d33">★</span>要望あり</div>
 <div class="chart">${axis()}<div style="position:relative;height:${tSeats.length * RH}px">${tHtml}</div></div>
 <div class="pg"></div>
-<h1>③ 来店人数・席を動かした組・要望メモ　${mo}月${da}日（${wd}）</h1>
+<h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
-<h2>時間別の来店人数</h2>
-<table class="p3t hr"><tr><th>来店</th><th>組</th><th>人数</th><th>カウンター</th><th>テーブル</th><th>店内</th><th></th></tr>${hourRows}</table>
+<table class="bigt"><tr><th>来店</th><th>組</th><th>人数</th><th>カウンター</th><th>テーブル</th><th>店内</th><th class="bw"></th></tr>${hourRows}</table>
 <div class="note">人数＝その30分に来る人数／店内＝その時刻に店にいる人数</div>
-</div><div class="c2">
-<h2>席を動かした組（${moves.length}組）</h2>
-${moves.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人数</th><th>食べログの席</th><th></th><th>案内する席</th></tr>${moveRows}</table>` : '<div class="meta">動かす組はありません</div>'}
 </div><div class="c3">
 <h2>要望・メモのある予約（${reqs.length}組）</h2>
 ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人数</th><th>席</th><th>内容</th></tr>${reqRows}</table>` : '<div class="meta">ありません</div>'}
