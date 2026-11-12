@@ -245,7 +245,7 @@ td.r{text-align:right}
 td.b{font-weight:bold}
 .hb{height:10px;min-width:0;background:#f7a823;border-radius:2px}
 .ng{color:#d33;font-weight:bold}
-@media print{.bar{display:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:165mm!important}.ng{font-size:12px}}
+@media print{.bar{display:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:122mm!important}.ng{font-size:12px}.bx{font-size:11px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:13px;padding:0 8px;line-height:1.25}.bigt td:first-child{font-size:14px}.bigt td.b{font-size:17px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
 <div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
