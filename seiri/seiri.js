@@ -210,12 +210,14 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .vl{position:absolute;top:0;bottom:0;border-left:1px solid #ddd}
 .vl.half{border-left:1px dashed #eee}
 .bx{position:absolute;border-radius:5px;padding:0 5px;font-size:12px;line-height:1.2;overflow:hidden;display:flex;flex-wrap:wrap;align-content:center;gap:0 4px;white-space:nowrap}
-.bx.p1{background:#dcecff;border:2px solid #3b7dd8}
-.bx.p2{background:#ffe2ad;border:2px solid #e8a33a}
-.bx.p3{background:#e6dcf7;border:2px solid #7d5bc4}
-.bx.warn{background:#ffd6d6;border:2px solid #d33}
-.nm{font-weight:bold}
-.pp{color:#555}
+.bx.p1{background:#1f5fbf;border:2px solid #123d80;color:#fff}
+.bx.p2{background:#1e7a3c;border:2px solid #0f4d24;color:#fff}
+.bx.p3{background:#5b3a9e;border:2px solid #3a2368;color:#fff}
+.bx.warn{background:#c62828;border:2px solid #7f1414;color:#fff}
+.nm{font-weight:bold;font-size:1.1em}
+.pp{color:inherit}
+.bx .pp,.bx .sub{color:#fff;opacity:.9}
+.bx .rq{color:#ffd400}
 .rq{color:#d33;font-weight:bold}
 .sub{font-size:10px;color:#555}
 .legend{font-size:11px;color:#444;margin:4px 0}
@@ -245,18 +247,18 @@ td.r{text-align:right}
 td.b{font-weight:bold}
 .hb{height:10px;min-width:0;background:#f7a823;border-radius:2px}
 .ng{color:#d33;font-weight:bold}
-@media print{.bar{display:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:122mm!important}.ng{font-size:12px}.bx{font-size:11px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:13px;padding:0 8px;line-height:1.25}.bigt td:first-child{font-size:14px}.bigt td.b{font-size:17px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
+@media print{.bar{display:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:122mm!important}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:13px;padding:0 8px;line-height:1.25}.bigt td:first-child{font-size:14px}.bigt td.b{font-size:17px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
 <div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
-<div class="legend"><span style="background:#dcecff;border:2px solid #3b7dd8"></span>1名<span style="background:#ffe2ad;border:2px solid #e8a33a"></span>2名<span style="background:#e6dcf7;border:2px solid #7d5bc4"></span>3名以上<span style="background:none;color:#d33">★</span>要望あり</div>
+<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
 ${chart(cGrid, cHtml, cSeats.length, 'pc')}
 <div class="pg"></div>
 <h1>② テーブル・個室　${mo}月${da}日（${wd}）</h1>
 <div class="meta">食べログのままの席です</div>
-<div class="legend"><span style="background:#dcecff;border:2px solid #3b7dd8"></span>1名<span style="background:#ffe2ad;border:2px solid #e8a33a"></span>2名<span style="background:#e6dcf7;border:2px solid #7d5bc4"></span>3名以上<span style="background:none;color:#d33">★</span>要望あり</div>
+<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
 ${chart(tGrid, tHtml, tSeats.length, 'pt')}
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
