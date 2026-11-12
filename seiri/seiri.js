@@ -238,7 +238,7 @@ td.b{font-weight:bold}
 </style></head><body>
 <div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
-<div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
+<div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
 <div class="legend"><span style="background:#dcecff;border:2px solid #3b7dd8"></span>1名<span style="background:#ffe2ad;border:2px solid #e8a33a"></span>2名<span style="background:#e6dcf7;border:2px solid #7d5bc4"></span>3名以上<span style="background:none;color:#d33">★</span>要望あり</div>
 <div class="chart">${axis()}<div style="position:relative;height:${cSeats.length * RH}px">${cHtml}</div></div>
@@ -265,7 +265,9 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   const m = location.pathname.match(/(\d{4}-\d{2}-\d{2})/);
   const jst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   const date = window.__seiriDate || (m ? m[1] : jst);
-  window.__seiriDate = null;
+  const auto = !!window.__seiriAuto; // 自動更新のときは画面を隠さず、スクロール位置を保つ
+  window.__seiriDate = null; window.__seiriAuto = false;
+  clearTimeout(window.__seiriTimer);
   const a = [...document.querySelectorAll('a[href*="tabelog.com/"]')].map(x => (x.href.match(/tabelog\.com\/[a-z]+\/A\d+\/A\d+\/(\d+)/) || [])[1]).find(Boolean);
   const rid = a || window.__seiriRid || '28077897';
   window.__seiriRid = rid;
@@ -280,7 +282,8 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   const w = window;
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font:18px sans-serif';
-  ov.textContent = '整理表を作っています…'; document.body.appendChild(ov);
+  ov.textContent = '整理表を作っています…'; if (!auto) document.body.appendChild(ov);
+  const sx = window.scrollX, sy = window.scrollY;
   try {
     const r = await fetch('/graphql', { method: 'POST', credentials: 'include', headers: { 'accept': 'application/graphql-response+json,application/json;q=0.9', 'content-type': 'application/json', 'x-restaurant-id': rid, 'x-from': location.origin }, body: JSON.stringify({ operationName: 'SeatSelection', variables: { date }, query: Q }) });
     const j = await r.json();
@@ -290,12 +293,16 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     const norm = {
       date, arrange: date === jst, navJs: 'window.__seiriGo', open: oh.lunchTimeFrom || oh.dinnerTimeFrom || '11:00', close: oh.dinnerTimeTo || oh.lunchTimeTo || '21:00',
       made: (now.getUTCMonth() + 1) + '/' + now.getUTCDate() + ' ' + now.getUTCHours() + ':' + String(now.getUTCMinutes()).padStart(2, '0'),
-      reloadJs: "location.href='/tn/time-schedule/'+'" + date + "'",
+      reloadJs: "clearTimeout(window.__seiriTimer);location.href='/tn/time-schedule/" + date + "?r='+Date.now()",
+      autoNote: '5分ごとに自動で更新',
       seats: d.seats.slice().sort((x, y) => x.displayOrder - y.displayOrder).map(s => ({ name: s.name, type: s.seatType.name, blocked: (s.onlineBookingBlockings || []).length > 0 })),
       bookings: d.bookings.edges.map(e => e.node).map(n => ({ from: n.timeFrom, to: n.timeTo, name: (n.lastNameKana || n.lastName || '') + ' ' + (n.firstNameKana || n.firstName || ''), n: n.numberOfPeople, seats: n.seats.map(s => s.name), status: n.bookingStatus, req: n.requestsAndComments, memo: n.memo }))
     };
     const html = seiriBuild(norm);
     w.document.open(); w.document.write(html); w.document.close();
-  } catch (e) { ov.style.color = '#c00'; ov.innerHTML = '<p style="font:16px sans-serif;padding:20px;color:#c00">読み込めませんでした。食べログノートにログインしているか確かめてください。<br><small>' + String(e.message || e).replace(/</g, '&lt;') + '</small><br><button onclick="this.parentNode.parentNode.remove()">閉じる</button></p>'; }
+    if (auto) window.scrollTo(sx, sy);
+    // 開いている間は5分ごとに読み直す
+    window.__seiriTimer = setTimeout(() => { window.__seiriAuto = true; window.__seiriGo(date); }, 5 * 60 * 1000);
+  } catch (e) { if (auto) { window.__seiriTimer = setTimeout(() => { window.__seiriAuto = true; window.__seiriGo(date); }, 60 * 1000); return; } ov.style.color = '#c00'; ov.innerHTML = '<p style="font:16px sans-serif;padding:20px;color:#c00">読み込めませんでした。食べログノートにログインしているか確かめてください。<br><small>' + String(e.message || e).replace(/</g, '&lt;') + '</small><br><button onclick="this.parentNode.parentNode.remove()">閉じる</button></p>'; }
 })();
 };window.__seiriRun();
