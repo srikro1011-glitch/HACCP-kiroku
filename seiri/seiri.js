@@ -58,10 +58,11 @@ function seiriBuild(norm) {
     return false;
   }
   let solved = false;
+  const arrange = norm.arrange !== false; // 当日だけ並べ直す。ほかの日は食べログのまま
   // いくつかの置き方を試して、点数が一番いいものを使う
   let bestSet = null, bestSc = -1;
   const scoreOf = () => placed.reduce((a, p) => { let k = 0; for (let x = p.start; x < p.start + p.b.k; x++) if (p.b.orig.includes(x)) k++; return a + k; }, 0);
-  for (const m of ['gap', 'slot1', 'slot0', 'pack']) {
+  for (const m of (arrange ? ['gap', 'slot1', 'slot0', 'pack'] : [])) {
     mode = m; steps = 0; placed.length = 0;
     if (dfs(0)) { solved = true; const sc = scoreOf(); if (sc > bestSc) { bestSc = sc; bestSet = placed.map(p => ({ ...p })); } if (m === 'gap') break; }
   }
@@ -98,7 +99,7 @@ function seiriBuild(norm) {
     }
   }
   if (!solved) { // 並べきれないとき: そのままの席で出す
-    ok = false; placed.length = 0;
+    ok = !arrange; placed.length = 0;
     cBook.forEach(b => placed.push({ b, start: Math.min(...b.orig), split: true }));
   }
   const moves = [];
@@ -136,7 +137,13 @@ function seiriBuild(norm) {
   let cHtml = grid(cSeats);
   placed.forEach(p => {
     const moved = p.now.join() !== p.b.seats.join();
-    if (p.split) { p.b.seats.forEach(n => { const i = cSeats.indexOf(n); cHtml += box(p.b, i * RH, RH, 'warn', p.b.seats.join('+')); }); return; }
+    if (p.split) {
+      const idx = p.b.seats.map(n => cSeats.indexOf(n)).filter(i => i >= 0).sort((a, c) => a - c);
+      const cont = idx.every((v, j) => j === 0 || v === idx[j - 1] + 1);
+      if (cont) { cHtml += box(p.b, idx[0] * RH, idx.length * RH, arrange ? 'warn' : 'st', ''); return; }
+      idx.forEach(i => { cHtml += box(p.b, i * RH, RH, arrange ? 'warn' : 'st', p.b.seats.join('+')); });
+      return;
+    }
     cHtml += box(p.b, p.start * RH, p.b.k * RH, 'st', '');
   });
 
@@ -179,7 +186,7 @@ html{-webkit-text-size-adjust:100%}
 body{-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;margin:0;padding:14px;color:#222;background:#fff}
 h1{font-size:20px;margin:0 0 2px}
 .meta{font-size:12px;color:#555;margin-bottom:8px}
-.bar{display:flex;gap:8px;margin:6px 0 10px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px;align-items:center}
 .bar button{font-size:14px;padding:6px 14px;border:1px solid #c47a00;background:#f7a823;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold}
 .bar button.sec{background:#fff;color:#c47a00}
 h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6px}
@@ -229,9 +236,9 @@ td.b{font-weight:bold}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar{display:none}body{padding:0}}
 </style></head><body>
-<div class="bar"><button onclick="window.print()">PDFにする／印刷</button><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
-<h1>① カウンター　${mo}月${da}日（${wd}）</h1>
-<div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成　／　カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）</div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
+<h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
+<div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
 <div class="legend"><span style="background:#dcecff;border:2px solid #3b7dd8"></span>1名<span style="background:#ffe2ad;border:2px solid #e8a33a"></span>2名<span style="background:#e6dcf7;border:2px solid #7d5bc4"></span>3名以上<span style="background:none;color:#d33">★</span>要望あり</div>
 <div class="chart">${axis()}<div style="position:relative;height:${cSeats.length * RH}px">${cHtml}</div></div>
@@ -257,9 +264,18 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   if (location.host !== 'owner.tabelog.com') { alert('食べログノート（owner.tabelog.com）を開いてから押してください'); return; }
   const m = location.pathname.match(/(\d{4}-\d{2}-\d{2})/);
   const jst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-  const date = m ? m[1] : jst;
+  const date = window.__seiriDate || (m ? m[1] : jst);
+  window.__seiriDate = null;
   const a = [...document.querySelectorAll('a[href*="tabelog.com/"]')].map(x => (x.href.match(/tabelog\.com\/[a-z]+\/A\d+\/A\d+\/(\d+)/) || [])[1]).find(Boolean);
-  const rid = a || '28077897';
+  const rid = a || window.__seiriRid || '28077897';
+  window.__seiriRid = rid;
+  // 日付を変えて読み直す（整理表の画面の中から呼ぶ）
+  window.__seiriGo = function (v) {
+    let d = v;
+    if (typeof v === 'number') { if (v === 0) d = jst; else { const t = new Date(date + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + v); d = t.toISOString().slice(0, 10); } }
+    window.__seiriDate = d;
+    const s = document.createElement('script'); s.src = 'https://replus-tanaoroshi.vercel.app/seiri/seiri.js?' + Date.now(); document.body.appendChild(s);
+  };
   // iPadでも動くように、別窓は使わず今の画面を整理表に切り替える
   const w = window;
   const ov = document.createElement('div');
@@ -272,9 +288,9 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     const d = j.data, oh = d.calendarDate && d.calendarDate.officeHour || {};
     const now = new Date(Date.now() + 9 * 3600e3);
     const norm = {
-      date, open: oh.lunchTimeFrom || oh.dinnerTimeFrom || '11:00', close: oh.dinnerTimeTo || oh.lunchTimeTo || '21:00',
+      date, arrange: date === jst, navJs: 'window.__seiriGo', open: oh.lunchTimeFrom || oh.dinnerTimeFrom || '11:00', close: oh.dinnerTimeTo || oh.lunchTimeTo || '21:00',
       made: (now.getUTCMonth() + 1) + '/' + now.getUTCDate() + ' ' + now.getUTCHours() + ':' + String(now.getUTCMinutes()).padStart(2, '0'),
-      reloadJs: "location.reload()",
+      reloadJs: "location.href='/tn/time-schedule/'+'" + date + "'",
       seats: d.seats.slice().sort((x, y) => x.displayOrder - y.displayOrder).map(s => ({ name: s.name, type: s.seatType.name, blocked: (s.onlineBookingBlockings || []).length > 0 })),
       bookings: d.bookings.edges.map(e => e.node).map(n => ({ from: n.timeFrom, to: n.timeTo, name: (n.lastNameKana || n.lastName || '') + ' ' + (n.firstNameKana || n.firstName || ''), n: n.numberOfPeople, seats: n.seats.map(s => s.name), status: n.bookingStatus, req: n.requestsAndComments, memo: n.memo }))
     };
