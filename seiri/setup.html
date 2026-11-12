@@ -1,0 +1,13 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>整理表ボタンの登録</title>
+<style>body{font-family:-apple-system,sans-serif;max-width:640px;margin:20px auto;padding:0 16px;line-height:1.7;color:#222}button{font-size:22px;padding:14px 24px;background:#f7a823;color:#fff;border:0;border-radius:10px;font-weight:bold;width:100%}textarea{width:100%;height:110px;font-size:12px}li{margin:6px 0}</style></head><body>
+<h1>整理表ボタンの登録（iPad）</h1>
+<p><button id="b" onclick="copyIt()">① ボタンの文をコピー</button></p>
+<textarea id="t" readonly>javascript:(function(){var s=document.createElement(&#x27;script&#x27;);s.src=&#x27;https://cdn.jsdelivr.net/gh/srikro1011-glitch/haccp-kiroku@claude/project-thread-vmytv6/seiri/seiri.js?&#x27;+Date.now();document.body.appendChild(s)})();</textarea>
+<ol>
+<li>このページで、共有ボタン →「ブックマークを追加」→ 名前「整理表」、場所「お気に入り」で保存</li>
+<li>ブックマーク一覧で「整理表」を長押し →「編集」→ アドレスを全部消して、コピーした文を貼り付けて保存</li>
+<li>Safariの設定で「お気に入りバー」を表示にする</li>
+<li>食べログノートのタイムスケジュールを開いて、お気に入りの「整理表」を押す</li>
+</ol>
+<script>function copyIt(){const t=document.getElementById('t');t.select();t.setSelectionRange(0,99999);(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).catch(()=>document.execCommand('copy')).finally(()=>{document.getElementById('b').textContent='コピーしました';});}</script>
+</body></html>
