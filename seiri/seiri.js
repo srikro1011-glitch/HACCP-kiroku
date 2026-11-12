@@ -269,7 +269,11 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   window.__seiriDate = null; window.__seiriAuto = false;
   clearTimeout(window.__seiriTimer);
   const a = [...document.querySelectorAll('a[href*="tabelog.com/"]')].map(x => (x.href.match(/tabelog\.com\/[a-z]+\/A\d+\/A\d+\/(\d+)/) || [])[1]).find(Boolean);
-  const rid = a || window.__seiriRid || '28077897';
+  let rid = a || window.__seiriRid;
+  if (!rid) { // 画面にリンクが出ていないときは、店舗トップから拾う
+    try { const t = await (await fetch('/owner_rst/top/', { credentials: 'include' })).text(); rid = (t.match(/tabelog\.com\/[a-z]+\/A\d+\/A\d+\/(\d+)/) || [])[1]; } catch (e) {}
+  }
+  if (!rid) { alert('お店の番号が読み取れませんでした。食べログノートのタイムスケジュールを開いて、画面がすべて出てからもう一度押してください'); return; }
   window.__seiriRid = rid;
   // 日付を変えて読み直す（整理表の画面の中から呼ぶ）
   window.__seiriGo = function (v) {
