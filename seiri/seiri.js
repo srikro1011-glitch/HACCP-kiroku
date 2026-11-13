@@ -110,6 +110,41 @@ function seiriBuild(norm) {
   });
   moves.sort((a, b) => a.b.s - b.b.s);
 
+  // ---- 2名テーブル（T1〜T9）の団体を T1〜T4 / T5〜T8 の中にまとめる（当日だけ）----
+  // T1〜T8は2名掛けが並び、4と5の間に柱。T9は離れているので団体には使わない。
+  const tNow = new Map(); let tMoved = 0, tOk = true;
+  (function () {
+    const POOL = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'].filter(n => norm.seats.some(s => s.name === n));
+    if (!arrange || POOL.length < 9) return;
+    const BLOCKS = [[0, 1, 2, 3], [4, 5, 6, 7]];
+    const inPool = b => b.seats.length && b.seats.every(n => POOL.includes(n));
+    const fixed = live.filter(b => !inPool(b) && b.seats.some(n => POOL.includes(n)))
+      .map(b => ({ s: toM(b.from), e: toM(b.to), idx: b.seats.map(n => POOL.indexOf(n)).filter(i => i >= 0) }));
+    const tb = live.filter(inPool).map(b => ({ b, s: toM(b.from), e: toM(b.to), k: b.seats.length, orig: b.seats.map(n => POOL.indexOf(n)) }))
+      .sort((a, c) => c.k - a.k || a.s - c.s);
+    const pl = [];
+    const busy = (i, x) => fixed.some(f => f.s < x.e && x.s < f.e && f.idx.includes(i)) || pl.some(p => p.x.s < x.e && x.s < p.x.e && p.at.includes(i));
+    function cand(x) {
+      const out = [];
+      if (x.k === 1) for (let i = 0; i < 9; i++) out.push([i]);
+      else BLOCKS.forEach(bl => { for (let st = 0; st + x.k <= bl.length; st++) out.push(bl.slice(st, st + x.k)); });
+      return out.filter(a => a.every(i => !busy(i, x)))
+        .map(a => ({ a, keep: a.filter(i => x.orig.includes(i)).length, far: x.k === 1 && a[0] === 8 ? 1 : 0,
+          bump: x.k > 1 ? tb.filter(y => y !== x && !pl.some(p => p.x === y) && y.s < x.e && x.s < y.e && y.orig.some(i => a.includes(i))).length : 0 }))
+        .sort((p, q) => p.bump - q.bump || q.keep - p.keep || p.far - q.far || p.a[0] - q.a[0]);
+    }
+    let steps = 0;
+    function dfs(i) {
+      if (i === tb.length) return true;
+      if (++steps > 20000) return false;
+      for (const c of cand(tb[i])) { pl.push({ x: tb[i], at: c.a }); if (dfs(i + 1)) return true; pl.pop(); }
+      return false;
+    }
+    if (tb.length > 0 && !tb.some(x => x.k > 4) && dfs(0)) {
+      pl.forEach(p => { const ns = p.at.slice().sort((a, c) => a - c).map(i => POOL[i]); if (ns.join() !== p.x.b.seats.join()) { tNow.set(p.x.b, ns); tMoved++; } });
+    } else if (tb.some(x => x.k > 1)) tOk = false;
+  })();
+
   // ---- 時間軸 ----
   const t0 = Math.floor(Math.min(toM(norm.open), ...live.map(b => toM(b.from))) / 60) * 60;
   const t1 = Math.ceil(Math.max(toM(norm.close), ...live.map(b => toM(b.to))) / 60) * 60;
@@ -134,7 +169,7 @@ function seiriBuild(norm) {
   function box(b, top, h, cls, sub) {
     const r0 = top / RH, rn = h / RH;
     cls = cls === 'warn' ? 'warn' : (b.n <= 1 ? 'p1' : b.n === 2 ? 'p2' : 'p3');
-    return `<div class="bx ${cls}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
+    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
       <span class="nm">${esc(b.name.split(' ')[0])}</span><span class="pp">${b.n}名</span>${b.req ? '<span class="rq">★</span>' : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</div>`;
   }
   function chart(g, inner, n, cls) {
@@ -159,14 +194,15 @@ function seiriBuild(norm) {
   const tSeats = norm.seats.filter(s => !isCounter(s)).map(s => s.name);
   const tGrid = grid(tSeats); let tHtml = '';
   live.filter(b => b.seats.some(n => tSeats.includes(n))).forEach(b => {
-    const idx = b.seats.map(n => tSeats.indexOf(n)).filter(i => i >= 0).sort((a, c) => a - c);
+    const ts = tNow.get(b) || b.seats;
+    const idx = ts.map(n => tSeats.indexOf(n)).filter(i => i >= 0).sort((a, c) => a - c);
     const contiguous = idx.every((v, j) => j === 0 || v === idx[j - 1] + 1);
-    if (contiguous) tHtml += box(b, idx[0] * RH, idx.length * RH, 'st', idx.length > 1 ? b.seats.join('+') : '');
-    else idx.forEach(i => { tHtml += box(b, i * RH, RH, 'st', b.seats.join('+')); });
+    if (contiguous) tHtml += box(b, idx[0] * RH, idx.length * RH, 'st', idx.length > 1 ? ts.join('+') : '');
+    else idx.forEach(i => { tHtml += box(b, i * RH, RH, 'st', ts.join('+')); });
   });
 
   const people = live.reduce((a, b) => a + b.n, 0);
-  const nowSeat = {}; placed.forEach(p => { nowSeat[p.b.from + p.b.name] = p.now; });
+  const nowSeat = {}; placed.forEach(p => { nowSeat[p.b.from + p.b.name] = p.now; }); tNow.forEach((v, b) => { nowSeat[b.from + b.name] = v; });
   const reqs = live.filter(b => b.req || b.memo).sort((a, b) => toM(a.from) - toM(b.from));
   const moveRows = moves.map(p => `<tr><td>${esc(p.b.from)}</td><td>${esc(p.b.name.split(' ')[0])} 様</td><td>${p.b.n}名</td><td class="o">${esc(p.b.seats.join('・'))}</td><td>→</td><td class="n">${esc(p.now.join('・'))}</td></tr>`).join('');
   const reqRows = reqs.map(b => `<tr><td>${esc(b.from)}</td><td>${esc(b.name.split(' ')[0])} 様</td><td>${b.n}名</td><td>${esc((nowSeat[b.from + b.name] || b.seats).join('・'))}</td><td>${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}</td></tr>`).join('');
@@ -207,9 +243,12 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .row{position:absolute;left:0;right:0;border-bottom:1px solid #e3e3e3}
 .row.odd{background:#fafafa}
 .lab{position:absolute;left:0;width:${LW}px;height:100%;display:flex;align-items:center;padding-left:4px;font-size:12px;font-weight:bold;border-right:1px solid #bbb;background:#f2f2f2}
-.vl{position:absolute;top:0;bottom:0;border-left:1px solid #ddd}
-.vl.half{border-left:1px dashed #eee}
-.bx{position:absolute;border-radius:5px;padding:0 5px;font-size:12px;line-height:1.2;overflow:hidden;display:flex;flex-wrap:wrap;align-content:center;gap:0 4px;white-space:nowrap}
+.vl{position:absolute;top:0;bottom:0;border-left:1px solid #888}
+.vl.half{border-left:1px dashed #9a9a9a}
+.bx{position:absolute;border-radius:5px;padding:0 5px;font-size:12px;line-height:1.2;overflow:hidden;display:flex;flex-wrap:nowrap;align-items:center;gap:0 4px;white-space:nowrap}
+.bx .nm{flex-shrink:0}
+.bx.tall{flex-wrap:wrap;align-content:center}
+.bx .sub{overflow:hidden;text-overflow:clip}
 .bx.p1{background:#1f5fbf;border:2px solid #123d80;color:#fff}
 .bx.p2{background:#1e7a3c;border:2px solid #0f4d24;color:#fff}
 .bx.p3{background:#5b3a9e;border:2px solid #3a2368;color:#fff}
@@ -257,7 +296,7 @@ ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで�
 ${chart(cGrid, cHtml, cSeats.length, 'pc')}
 <div class="pg"></div>
 <h1>② テーブル・個室　${mo}月${da}日（${wd}）</h1>
-<div class="meta">食べログのままの席です</div>
+<div class="meta">${arrange && tMoved ? '2名テーブルの団体は T1〜T4・T5〜T8 の中にまとめ直し済み（' + tMoved + '組・食べログ側は書き換えていません）／ほかは食べログのまま' : '食べログのままの席です'}</div>${tOk ? '' : '<div class="ng">※ 2名テーブルの団体を T1〜T4・T5〜T8 にまとめきれなかったので、食べログの席のままです。</div>'}
 <div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
 ${chart(tGrid, tHtml, tSeats.length, 'pt')}
 <div class="pg"></div>
