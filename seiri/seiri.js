@@ -169,7 +169,7 @@ function seiriBuild(norm) {
   function box(b, top, h, cls, sub) {
     const r0 = top / RH, rn = h / RH;
     cls = cls === 'warn' ? 'warn' : (b.n <= 1 ? 'p1' : b.n === 2 ? 'p2' : 'p3');
-    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-r="${r0}" data-s="${rn}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
+    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-r="${r0}" data-s="${rn}" data-p="${b.n}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
       <span class="nm">${esc(b.name.split(' ')[0])}</span><span class="pp">${b.n}名</span>${b.req ? '<span class="rq">★</span>' : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</div>`;
   }
   function arrRow(list) { // 30分ごと・1時間ごとの来店人数と合計（時間の下にそろえる）
@@ -310,7 +310,7 @@ td.b{font-weight:bold}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar{display:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:118mm!important}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
-<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">枠を指で上下に動かすと席を移せます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">枠を指で上下に動かすと席を移せます（カウンター⇔テーブルも可）</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
@@ -332,30 +332,40 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
 </div></div>
 <script>
 (function(){
-  var cur=null;
+  var cur=null,lastY=0,timer=null;
   function rowsOf(pl){return pl.getAttribute('data-rows').split('|');}
-  function place(bx,r){var pl=bx.closest('.plot'),n=+pl.getAttribute('data-n'),s=+bx.getAttribute('data-s');
-    bx.style.top='calc('+(r/n*100)+'% + 2px)';bx.setAttribute('data-r',r);
+  function place(bx,pl,r,s){var n=+pl.getAttribute('data-n');
+    var trk=pl.querySelector('.trk');if(bx.parentNode!==trk)trk.appendChild(bx);
+    bx.style.top='calc('+(r/n*100)+'% + 2px)';bx.style.height='calc('+(s/n*100)+'% - 4px)';
+    bx.setAttribute('data-r',r);bx.setAttribute('data-s',s);bx.classList.toggle('tall',s>1);
     var names=rowsOf(pl).slice(r,r+s),sub=bx.querySelector('.sub');
-    if(s>1){if(!sub){sub=document.createElement('span');sub.className='sub';bx.appendChild(sub);}sub.textContent=names.join('+');}else if(sub){sub.textContent=names[0];}
-  }
+    if(!sub){sub=document.createElement('span');sub.className='sub';bx.appendChild(sub);}
+    sub.textContent=names.join('+');}
   function overlaps(){document.querySelectorAll('.plot').forEach(function(pl){var bs=[].slice.call(pl.querySelectorAll('.bx'));
     bs.forEach(function(b){b.classList.remove('ov');});
     bs.forEach(function(a,i){var ar=a.getBoundingClientRect(),r0=+a.getAttribute('data-r'),s0=+a.getAttribute('data-s');
       bs.slice(i+1).forEach(function(b){var br=b.getBoundingClientRect(),r1=+b.getAttribute('data-r'),s1=+b.getAttribute('data-s');
         if(r0<r1+s1&&r1<r0+s0&&ar.left<br.right-2&&br.left<ar.right-2){a.classList.add('ov');b.classList.add('ov');}});});});}
   function edited(){clearTimeout(window.__seiriTimer);var u=document.getElementById('undoBtn');if(u)u.style.display='';
-    var m=document.querySelector('.meta');if(m&&!document.querySelector('.edn')){var e=document.createElement('div');e.className='edn';e.textContent='※ 手で動かした枠があります（黄色の点線）。自動更新は止めました。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}}
+    var m=document.querySelector('.meta');if(m&&!document.querySelector('.edn')){var e=document.createElement('div');e.className='edn';e.textContent='※ 手で動かした枠があります（黄色の点線）。自動更新は止めました。下の来店人数の行は動かす前の数です。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}}
+  function follow(){if(!cur||!cur.moved)return;cur.bx.style.transform='translateY('+(lastY+window.scrollY-cur.py)+'px)';}
   document.addEventListener('pointerdown',function(ev){var bx=ev.target.closest&&ev.target.closest('.bx');if(!bx||!bx.closest('.plot'))return;
-    var pl=bx.closest('.plot');cur={bx:bx,y:ev.clientY,r:+bx.getAttribute('data-r'),h:pl.getBoundingClientRect().height/+pl.getAttribute('data-n'),moved:false};
-    try{bx.setPointerCapture(ev.pointerId);}catch(e){} ev.preventDefault();});
-  document.addEventListener('pointermove',function(ev){if(!cur)return;var dy=ev.clientY-cur.y;if(!cur.moved&&Math.abs(dy)<6)return;
-    if(!cur.moved){cur.moved=true;cur.bx.classList.add('drag');}
-    cur.bx.style.transform='translateY('+dy+'px)';});
-  function end(ev){if(!cur)return;var c=cur;cur=null;c.bx.classList.remove('drag');c.bx.style.transform='';if(!c.moved)return;
-    var pl=c.bx.closest('.plot'),n=+pl.getAttribute('data-n'),s=+c.bx.getAttribute('data-s');
-    var r=Math.max(0,Math.min(n-s,c.r+Math.round((ev.clientY-c.y)/c.h)));
-    if(r!==c.r){place(c.bx,r);c.bx.classList.add('ed');edited();overlaps();}}
+    var br=bx.getBoundingClientRect();cur={bx:bx,py:ev.clientY+window.scrollY,grab:ev.clientY-br.top,moved:false};lastY=ev.clientY;
+    try{bx.setPointerCapture(ev.pointerId);}catch(e){} ev.preventDefault();
+    timer=setInterval(function(){if(!cur||!cur.moved)return;var h=window.innerHeight;
+      if(lastY>h-70){window.scrollBy(0,14);follow();}else if(lastY<70){window.scrollBy(0,-14);follow();}},16);});
+  document.addEventListener('pointermove',function(ev){if(!cur)return;lastY=ev.clientY;
+    if(!cur.moved&&Math.abs(ev.clientY+window.scrollY-cur.py)<6)return;
+    if(!cur.moved){cur.moved=true;cur.bx.classList.add('drag');}follow();});
+  function end(ev){clearInterval(timer);if(!cur)return;var c=cur;cur=null;c.bx.classList.remove('drag');c.bx.style.transform='';if(!c.moved)return;
+    var y=lastY,tg=null;document.querySelectorAll('.plot').forEach(function(pl){var r=pl.getBoundingClientRect();if(y>=r.top-10&&y<=r.bottom+10)tg=pl;});
+    if(!tg)return;
+    var src=c.bx.closest('.plot'),s=+c.bx.getAttribute('data-s'),p=+c.bx.getAttribute('data-p')||1;
+    if(tg!==src){s=tg.classList.contains('pc')?Math.max(1,p):(p>4?2:1);}
+    var n=+tg.getAttribute('data-n'),rect=tg.getBoundingClientRect(),rh=rect.height/n;
+    var r=Math.max(0,Math.min(n-s,Math.round((y-c.grab-rect.top)/rh)));
+    if(tg===src&&r===+c.bx.getAttribute('data-r'))return;
+    place(c.bx,tg,r,s);c.bx.classList.add('ed');edited();overlaps();}
   document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
 })();
 </script>
