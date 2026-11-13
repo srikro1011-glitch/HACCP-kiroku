@@ -172,8 +172,16 @@ function seiriBuild(norm) {
     return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
       <span class="nm">${esc(b.name.split(' ')[0])}</span><span class="pp">${b.n}名</span>${b.req ? '<span class="rq">★</span>' : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</div>`;
   }
-  function chart(g, inner, n, cls) {
-    return `<div class="chart"><div class="cin">${axis()}<div class="plot ${cls}" style="height:${n * RH}px">${g.head}<div class="trk">${g.lines}${inner}</div></div></div></div>`;
+  function arrRow(list, label) { // 30分ごとの来店人数（時間の下にそろえる）
+    let h = '';
+    for (let m = t0; m < t1; m += 30) {
+      const p = list.filter(b => toM(b.from) >= m && toM(b.from) < m + 30).reduce((a, b) => a + b.n, 0);
+      h += `<div class="ac" style="left:${pc(m)};width:${pc(t0 + 30)}">${p || ''}</div>`;
+    }
+    return `<div class="arr"><div class="arl">${label}</div><div class="trk">${h}</div></div>`;
+  }
+  function chart(g, inner, n, cls, foot) {
+    return `<div class="chart"><div class="cin">${axis()}<div class="plot ${cls}" style="height:${n * RH}px">${g.head}<div class="trk">${g.lines}${inner}</div></div>${foot || ''}</div></div>`;
   }
 
   // カウンター
@@ -243,6 +251,9 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .row{position:absolute;left:0;right:0;border-bottom:1px solid #e3e3e3}
 .row.odd{background:#fafafa}
 .lab{position:absolute;left:0;width:${LW}px;height:100%;display:flex;align-items:center;padding-left:4px;font-size:12px;font-weight:bold;border-right:1px solid #bbb;background:#f2f2f2}
+.arr{position:relative;height:26px;border-top:2px solid #444;border-bottom:1px solid #bbb;background:#fff8ea}
+.arl{position:absolute;left:0;width:${LW}px;height:100%;display:flex;align-items:center;padding-left:3px;font-size:10px;font-weight:bold;background:#f2f2f2;border-right:1px solid #bbb}
+.ac{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:bold;color:#c45a00;border-left:1px dashed #9a9a9a}
 .vl{position:absolute;top:0;bottom:0;border-left:1px solid #888}
 .vl.half{border-left:1px dashed #9a9a9a}
 .bx{position:absolute;border-radius:5px;padding:0 5px;font-size:12px;line-height:1.2;overflow:hidden;display:flex;flex-wrap:nowrap;align-items:center;gap:0 4px;white-space:nowrap}
@@ -293,12 +304,12 @@ td.b{font-weight:bold}
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
 <div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
-${chart(cGrid, cHtml, cSeats.length, 'pc')}
+${chart(cGrid, cHtml, cSeats.length, 'pc', arrRow(live.filter(b => b.seats.some(n => cSeats.includes(n))), '来店人数'))}
 <div class="pg"></div>
 <h1>② テーブル・個室　${mo}月${da}日（${wd}）</h1>
 <div class="meta">${arrange && tMoved ? '2名テーブルの団体は T1〜T4・T5〜T8 の中にまとめ直し済み（' + tMoved + '組・食べログ側は書き換えていません）／ほかは食べログのまま' : '食べログのままの席です'}</div>${tOk ? '' : '<div class="ng">※ 2名テーブルの団体を T1〜T4・T5〜T8 にまとめきれなかったので、食べログの席のままです。</div>'}
 <div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
-${chart(tGrid, tHtml, tSeats.length, 'pt')}
+${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => b.seats.some(n => tSeats.includes(n))), '来店人数'))}
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
