@@ -281,7 +281,8 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .ac.h{font-size:17px;color:#7a2e00;border-left:1px solid #666}
 .arr.tot .ac{font-size:16px;color:#222}
 .ac{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:bold;color:#c45a00;border-left:1px dashed #9a9a9a}
-.bx{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.bx{touch-action:pan-y;cursor:grab;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.bx.held{outline:3px solid #ffd400;outline-offset:1px;transform:scale(1.03);z-index:5}
 .bx.drag{opacity:.85;box-shadow:0 4px 12px rgba(0,0,0,.4);z-index:5}
 .bx.ed{outline:3px dashed #ffd400;outline-offset:-3px}
 .bx.ov{outline:3px solid #ff2d2d;outline-offset:-3px}
@@ -333,7 +334,7 @@ td.b{font-weight:bold}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar{display:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:118mm!important}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
-<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">枠を指で上下に動かすと席を移せます（カウンター⇔テーブルも可）</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">枠を長押しすると、つかんで別の席へ移せます（カウンター⇔テーブルも可）</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
@@ -372,15 +373,20 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   function edited(){clearTimeout(window.__seiriTimer);var u=document.getElementById('undoBtn');if(u)u.style.display='';
     var m=document.querySelector('.meta');if(m&&!document.querySelector('.edn')){var e=document.createElement('div');e.className='edn';e.textContent='※ 手で動かした枠があります（黄色の点線）。自動更新は止めました。下の来店人数の行は動かす前の数です。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}}
   function follow(){if(!cur||!cur.moved)return;cur.bx.style.transform='translateY('+(lastY+window.scrollY-cur.py)+'px)';}
+  var HOLD=500;
+  function cancel(){clearTimeout(cur&&cur.ht);clearInterval(timer);if(cur){cur.bx.classList.remove('drag','held');cur.bx.style.transform='';}cur=null;}
   document.addEventListener('pointerdown',function(ev){var bx=ev.target.closest&&ev.target.closest('.bx');if(!bx||!bx.closest('.plot'))return;
-    var br=bx.getBoundingClientRect();cur={bx:bx,py:ev.clientY+window.scrollY,grab:ev.clientY-br.top,moved:false};lastY=ev.clientY;
-    try{bx.setPointerCapture(ev.pointerId);}catch(e){} ev.preventDefault();
-    timer=setInterval(function(){if(!cur||!cur.moved)return;var h=window.innerHeight;
-      if(lastY>h-70){window.scrollBy(0,14);follow();}else if(lastY<70){window.scrollBy(0,-14);follow();}},16);});
+    var br=bx.getBoundingClientRect();cur={bx:bx,py:ev.clientY+window.scrollY,sy:ev.clientY,grab:ev.clientY-br.top,moved:false,held:false,id:ev.pointerId};lastY=ev.clientY;
+    cur.ht=setTimeout(function(){if(!cur)return;cur.held=true;cur.bx.classList.add('held');try{cur.bx.setPointerCapture(cur.id);}catch(e){}
+      if(navigator.vibrate)navigator.vibrate(30);
+      timer=setInterval(function(){if(!cur||!cur.moved)return;var h=window.innerHeight;
+        if(lastY>h-70){window.scrollBy(0,14);follow();}else if(lastY<70){window.scrollBy(0,-14);follow();}},16);},HOLD);});
+  document.addEventListener('touchmove',function(ev){if(cur&&cur.held)ev.preventDefault();},{passive:false});
   document.addEventListener('pointermove',function(ev){if(!cur)return;lastY=ev.clientY;
+    if(!cur.held){if(Math.abs(ev.clientY-cur.sy)>8)cancel();return;}
     if(!cur.moved&&Math.abs(ev.clientY+window.scrollY-cur.py)<6)return;
     if(!cur.moved){cur.moved=true;cur.bx.classList.add('drag');}follow();});
-  function end(ev){clearInterval(timer);if(!cur)return;var c=cur;cur=null;c.bx.classList.remove('drag');c.bx.style.transform='';if(!c.moved)return;
+  function end(ev){clearTimeout(cur&&cur.ht);clearInterval(timer);if(!cur)return;var c=cur;cur=null;c.bx.classList.remove('drag','held');c.bx.style.transform='';if(!c.held||!c.moved)return;
     var y=lastY,tg=null;document.querySelectorAll('.plot').forEach(function(pl){var r=pl.getBoundingClientRect();if(y>=r.top-10&&y<=r.bottom+10)tg=pl;});
     if(!tg)return;
     var src=c.bx.closest('.plot'),s=+c.bx.getAttribute('data-s'),p=+c.bx.getAttribute('data-p')||1;
@@ -388,8 +394,10 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     var n=+tg.getAttribute('data-n'),rect=tg.getBoundingClientRect(),rh=rect.height/n;
     var r=Math.max(0,Math.min(n-s,Math.round((y-c.grab-rect.top)/rh)));
     if(tg===src&&r===+c.bx.getAttribute('data-r'))return;
-    place(c.bx,tg,r,s);c.bx.classList.add('ed');edited();overlaps();}
-  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
+    var nm=(c.bx.querySelector('.nm')||{}).textContent||'',from=rowsOf(src).slice(+c.bx.getAttribute('data-r'),+c.bx.getAttribute('data-r')+(+c.bx.getAttribute('data-s'))).join('+'),to=rowsOf(tg).slice(r,r+s).join('+');
+    setTimeout(function(){if(!window.confirm(nm+' 様を\\n'+from+' → '+to+'\\nに移しますか？'))return;
+      place(c.bx,tg,r,s);c.bx.classList.add('ed');edited();overlaps();},30);}
+  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',function(){if(cur&&!cur.held)cancel();else end();});
 })();
 </script>
 </body></html>`;
