@@ -211,6 +211,28 @@ function seiriBuild(norm) {
     else idx.forEach(i => { tHtml += box(b, i * RH, RH, 'st', ts.join('+')); });
   });
 
+  // 空き枠: 20時までに1時間半（90分）空いている席に、赤線の空白枠
+  const FREE_END = toM('20:00'), FREE_LEN = 90;
+  function freeHtml(rows, occ) {
+    let h = '';
+    rows.forEach((nm, i) => {
+      const busy = (occ[nm] || []).slice().sort((a, c) => a[0] - c[0]);
+      let t = Math.ceil(toM(norm.open) / 30) * 30;
+      while (t + FREE_LEN <= FREE_END) {
+        const hit = busy.find(x => x[0] < t + FREE_LEN && t < x[1]);
+        if (hit) { t = Math.ceil(hit[1] / 30) * 30; continue; }
+        h += `<div class="free" style="left:calc(${pc(t)} + 1px);top:calc(${pr(i)} + 2px);width:calc(${pc(t0 + FREE_LEN)} - 3px);height:calc(${pr(1)} - 4px)"></div>`;
+        t += FREE_LEN;
+      }
+    });
+    return h;
+  }
+  const occC = {}, occT = {};
+  const addOcc = (o, names, b) => names.forEach(n => (o[n] = o[n] || []).push([toM(b.from), toM(b.to)]));
+  placed.forEach(p => addOcc(occC, p.now, p.b));
+  live.forEach(b => addOcc(occT, (tNow.get(b) || b.seats), b));
+  curN = Math.max(cSeats.length, 1); const freeC = freeHtml(cSeats, occC);
+  curN = Math.max(tSeats.length, 1); const freeT = freeHtml(tSeats, occT);
   const people = live.reduce((a, b) => a + b.n, 0);
   const nowSeat = {}; placed.forEach(p => { nowSeat[p.b.from + p.b.name] = p.now; }); tNow.forEach((v, b) => { nowSeat[b.from + b.name] = v; });
   const reqs = live.filter(b => b.req || b.memo).sort((a, b) => toM(a.from) - toM(b.from));
@@ -265,6 +287,7 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .bx.ov{outline:3px solid #ff2d2d;outline-offset:-3px}
 .hint{font-size:12px;color:#666}
 .edn{color:#b00;font-weight:bold;font-size:12px}
+.free{position:absolute;border:2px solid #e00000;border-radius:4px;background:transparent;pointer-events:none}
 .vl{position:absolute;top:0;bottom:0;border-left:1px solid #888}
 .vl.half{border-left:1px dashed #9a9a9a}
 .bx{position:absolute;border-radius:5px;padding:0 5px;font-size:12px;line-height:1.2;overflow:hidden;display:flex;flex-wrap:nowrap;align-items:center;gap:0 4px;white-space:nowrap}
@@ -314,13 +337,13 @@ td.b{font-weight:bold}
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
-<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
-${chart(cGrid, cHtml, cSeats.length, 'pc', arrRow(live.filter(b => b.seats.some(n => cSeats.includes(n)))))}
+<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり<span style="background:#fff;border:2px solid #e00000"></span>20時までに1時間半あいている枠</div>
+${chart(cGrid, freeC + cHtml, cSeats.length, 'pc', arrRow(live.filter(b => b.seats.some(n => cSeats.includes(n)))))}
 <div class="pg"></div>
 <h1>② テーブル・個室　${mo}月${da}日（${wd}）</h1>
 <div class="meta">${arrange && tMoved ? '2名テーブルの団体は T1〜T4・T5〜T8 の中にまとめ直し済み（' + tMoved + '組・食べログ側は書き換えていません）／ほかは食べログのまま' : '食べログのままの席です'}</div>${tOk ? '' : '<div class="ng">※ 2名テーブルの団体を T1〜T4・T5〜T8 にまとめきれなかったので、食べログの席のままです。</div>'}
-<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
-${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => b.seats.some(n => tSeats.includes(n)))))}
+<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり<span style="background:#fff;border:2px solid #e00000"></span>20時までに1時間半あいている枠</div>
+${chart(tGrid, freeT + tHtml, tSeats.length, 'pt', arrRow(live.filter(b => b.seats.some(n => tSeats.includes(n)))))}
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
