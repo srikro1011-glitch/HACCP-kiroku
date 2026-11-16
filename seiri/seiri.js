@@ -204,7 +204,7 @@ function seiriBuild(norm) {
   function box(b, top, h, cls, sub) {
     const r0 = top / RH, rn = h / RH;
     cls = cls === 'warn' ? 'warn' : (b.n <= 1 ? 'p1' : b.n === 2 ? 'p2' : 'p3');
-    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-id="${b.id}" data-a="${toM(b.from)}" data-b="${toM(b.to)}" data-t="${esc(b.from + '〜' + b.to)}" data-r="${r0}" data-s="${rn}" data-p="${b.n}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
+    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-id="${b.id}" data-k="${esc(b.from + '|' + b.name + '|' + b.n)}" data-q="${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}" data-a="${toM(b.from)}" data-b="${toM(b.to)}" data-t="${esc(b.from + '〜' + b.to)}" data-r="${r0}" data-s="${rn}" data-p="${b.n}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
       <span class="nm">${esc(b.name.split(' ')[0])}</span><span class="pp">${b.n}名</span>${b.req ? '<span class="rq">★</span>' : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</div>`;
   }
   function arrRow(list) { // 30分ごと・1時間ごとの来店人数と合計（時間の下にそろえる）
@@ -326,6 +326,8 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .bx.ov{outline:3px solid #ff2d2d;outline-offset:-3px}
 .hint{font-size:12px;color:#666}
 .edn{color:#b00;font-weight:bold;font-size:12px}
+.bx.arr{opacity:.3}
+#sp .mn{max-width:480px}#sp .mb{display:flex;flex-direction:column;gap:10px;margin-top:10px}#sp .mb button{font-size:19px;padding:14px;border-radius:10px;border:2px solid #999;background:#fff}#sp .mb .ok{background:#1e7a3c;border-color:#0f4d24;color:#fff}
 .rqb{margin-top:4px;border:2px solid #c45a00;border-radius:4px;padding:2px 6px;background:#fff8ef}.rqh{font-weight:bold;color:#c45a00;font-size:13px}.rqb table{border-collapse:collapse;width:100%}.rqb td{font-size:13px;padding:1px 6px;border-top:1px solid #eedcc8;vertical-align:top;white-space:nowrap}.rqb td:last-child{white-space:normal;width:100%}.rqb td.st{font-weight:bold}
 #sp{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
 #sp .cd{background:#fff;border-radius:10px;max-width:760px;width:100%;padding:14px 16px;font-size:15px;color:#222}
@@ -384,7 +386,7 @@ td.b{font-weight:bold}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar{display:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:var(--ph,118mm)!important}.rqb td{font-size:11px;padding:0 4px}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
-<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップすると、席を選び直せます（席の追加・カウンター⇔テーブルも可）。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らすができます。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
@@ -406,6 +408,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
 </div></div>
 <script>
 (function(){
+  var DATE='${norm.date}';
   var cur=null,lastY=0,timer=null;
   function rowsOf(pl){return pl.getAttribute('data-rows').split('|');}
   function place(bx,pl,r,s){var n=+pl.getAttribute('data-n');
@@ -424,6 +427,25 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     var m=document.querySelector('.meta');if(m&&!document.querySelector('.edn')){var e=document.createElement('div');e.className='edn';e.textContent='※ 手で動かした枠があります（黄色の点線）。自動更新は止めました。下の来店人数の行は動かす前の数です。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}}
   function follow(){if(!cur||!cur.moved)return;cur.bx.style.transform='translateY('+(lastY+window.scrollY-cur.py)+'px)';}
 
+
+  // 名前を押したとき: 来店チェック／席を変える
+  var AKEY='seiri-arr-'+DATE;
+  function arrList(){try{return JSON.parse(localStorage.getItem(AKEY)||'[]');}catch(e){return window.__seiriArr||[];}}
+  function arrSave(a){window.__seiriArr=a;try{localStorage.setItem(AKEY,JSON.stringify(a));}catch(e){}}
+  function arrPaint(){var a=arrList();document.querySelectorAll('.plot .bx').forEach(function(b){b.classList.toggle('arr',a.indexOf(b.getAttribute('data-k'))>=0);});}
+  arrPaint();
+  function openMenu(bx){var id=bx.getAttribute('data-id'),k=bx.getAttribute('data-k'),came=arrList().indexOf(k)>=0;
+    var nm=(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'',q=bx.getAttribute('data-q')||'';
+    var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
+    var sp=document.createElement('div');sp.id='sp';sp.dataset.t=Date.now();
+    var e=function(x){return String(x).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});};
+    sp.innerHTML='<div class="cd mn"><h3>'+e(nm)+' 様　'+p+'名　'+e(tt)+'</h3><p class="sm">席: '+e(seatsOf(id).join('+'))+(came?'　<b style="color:#1e7a3c">来店済み</b>':'')+'</p>'+(q?'<p class="sm" style="color:#c45a00">要望: '+e(q)+'</p>':'')
+      +'<div class="mb"><button class="arr1 '+(came?'':'ok')+'">'+(came?'来店を取り消す':'ご来店しました')+'</button><button class="seat">席を変える・席を減らす／足す</button><button class="cx">閉じる</button></div></div>';
+    document.body.appendChild(sp);
+    sp.addEventListener('click',function(ev){var t=ev.target.closest('button');if(ev.target===sp&&Date.now()-sp.dataset.t<600)return;
+      if(ev.target===sp||(t&&t.classList.contains('cx'))){sp.parentNode.removeChild(sp);return;}if(!t)return;
+      if(t.classList.contains('arr1')){var a=arrList(),i=a.indexOf(k);if(i>=0)a.splice(i,1);else a.push(k);arrSave(a);arrPaint();sp.parentNode.removeChild(sp);return;}
+      if(t.classList.contains('seat')){sp.parentNode.removeChild(sp);openPanel(bx);}});}
   // タップで席を選び直す（複数の席も選べる）
   function boxesOf(id){return [].slice.call(document.querySelectorAll('.bx[data-id="'+id+'"]'));}
   function seatsOfBox(b){var pl=b.closest('.plot'),r=+b.getAttribute('data-r'),s=+b.getAttribute('data-s');return rowsOf(pl).slice(r,r+s);}
@@ -440,7 +462,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     var nm=(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'';
     var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
     var sp=document.createElement('div');sp.id='sp';
-    var html='<div class="cd"><h3>'+nm+' 様　'+p+'名　'+tt+'</h3><p class="sm">座る席をタップして選んでください（いくつでも選べます）。もう一度タップで外れます。点線の席は同じ時間に別の予約があります。</p>';
+    sp.dataset.t=Date.now();var html='<div class="cd"><h3>'+nm+' 様　'+p+'名　'+tt+'</h3><p class="sm">座る席をタップして選んでください（いくつでも選べます）。もう一度タップで外れます。点線の席は同じ時間に別の予約があります。</p>';
     var groups=[];document.querySelectorAll('.plot').forEach(function(pl){groups.push({lab:pl.classList.contains('pc')?'カウンター':'テーブル・個室',rows:rowsOf(pl)});});
     groups.forEach(function(g){html+='<div class="gl">'+g.lab+'</div><div class="gs">';g.rows.forEach(function(n){html+='<button class="st" data-n="'+n.replace(/"/g,'&quot;')+'">'+n+(bz[n]?'<small>'+bz[n]+'</small>':'')+'</button>';});html+='</div>';});
     html+='<div class="now"></div><div class="ft"><button class="cx">やめる</button><button class="ok">この席にする</button></div></div>';
@@ -448,11 +470,11 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     function paint(){[].forEach.call(sp.querySelectorAll('.st'),function(b){var n=b.getAttribute('data-n');b.classList.toggle('on',sel.indexOf(n)>=0);b.classList.toggle('bz',!!bz[n]&&sel.indexOf(n)<0);});
       sp.querySelector('.now').textContent='えらんだ席: '+(sel.length?sel.join('+'):'なし')+'（今: '+cur0.join('+')+'）';}
     paint();
-    sp.addEventListener('click',function(ev){var t=ev.target.closest('button');if(ev.target===sp||(t&&t.classList.contains('cx'))){sp.parentNode.removeChild(sp);return;}if(!t)return;
+    sp.addEventListener('click',function(ev){var t=ev.target.closest('button');if(ev.target===sp&&Date.now()-sp.dataset.t<600)return;if(ev.target===sp||(t&&t.classList.contains('cx'))){sp.parentNode.removeChild(sp);return;}if(!t)return;
       if(t.classList.contains('st')){var n=t.getAttribute('data-n'),i=sel.indexOf(n);if(i>=0)sel.splice(i,1);else sel.push(n);paint();return;}
       if(t.classList.contains('ok')){if(!sel.length){alert('席を1つ以上えらんでください');return;}
         var all=[];groups.forEach(function(g){g.rows.forEach(function(n){if(sel.indexOf(n)>=0)all.push(n);});});
-        sp.parentNode.removeChild(sp);if(all.slice().sort().join()===cur0.slice().sort().join())return;render(id,all);edited();overlaps();}});}
+        sp.parentNode.removeChild(sp);if(all.slice().sort().join()===cur0.slice().sort().join())return;render(id,all);edited();overlaps();arrPaint();}});}
   var HOLD=500;
   function cancel(){clearTimeout(cur&&cur.ht);clearInterval(timer);if(cur){cur.bx.classList.remove('drag','held');cur.bx.style.transform='';}cur=null;}
   document.addEventListener('pointerdown',function(ev){var bx=ev.target.closest&&ev.target.closest('.bx');if(!bx||!bx.closest('.plot'))return;
@@ -466,7 +488,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     if(!cur.held){if(Math.abs(ev.clientY-cur.sy)>8||Math.abs(ev.clientX-cur.sx)>8)cancel();return;}
     if(!cur.moved&&Math.abs(ev.clientY+window.scrollY-cur.py)<6)return;
     if(!cur.moved){cur.moved=true;cur.bx.classList.add('drag');}follow();});
-  function end(ev){clearTimeout(cur&&cur.ht);clearInterval(timer);if(!cur)return;var c=cur;cur=null;c.bx.classList.remove('drag','held');c.bx.style.transform='';if(!c.held&&!c.moved&&!c.cx){openPanel(c.bx);return;}if(!c.held||!c.moved)return;
+  function end(ev){clearTimeout(cur&&cur.ht);clearInterval(timer);if(!cur)return;var c=cur;cur=null;c.bx.classList.remove('drag','held');c.bx.style.transform='';if(!c.held&&!c.moved&&!c.cx){openMenu(c.bx);return;}if(!c.held||!c.moved)return;
     var y=lastY,tg=null;document.querySelectorAll('.plot').forEach(function(pl){var r=pl.getBoundingClientRect();if(y>=r.top-10&&y<=r.bottom+10)tg=pl;});
     if(!tg)return;
     var src=c.bx.closest('.plot'),s=+c.bx.getAttribute('data-s'),p=+c.bx.getAttribute('data-p')||1;
