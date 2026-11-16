@@ -334,7 +334,7 @@ td.b{font-weight:bold}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar{display:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:118mm!important}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
-<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">枠を長押しすると、つかんで別の席へ移せます（カウンター⇔テーブルも可）</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button>${norm.monthJs ? `<button class="sec" onclick="${norm.monthJs}">1か月の時間帯チェック</button>` : ''}<button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">枠を長押しすると、つかんで別の席へ移せます（カウンター⇔テーブルも可）</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
@@ -426,6 +426,42 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     window.__seiriDate = d;
     const s = document.createElement('script'); s.src = 'https://replus-tanaoroshi.vercel.app/seiri/seiri.js?' + Date.now(); document.body.appendChild(s);
   };
+  // 1か月分、指定の時間帯にかかる予約を調べる（中休みにしてよいかの確認用）
+  window.__seiriMonth = async function () {
+    const def = date.slice(0, 7) + ' 15:00-17:00';
+    const ans = window.prompt('調べる月と時間帯を入れてください（例: 2026-12 15:00-17:00）', def);
+    if (!ans) return;
+    const mm = ans.match(/(\d{4})-(\d{1,2})\s+(\d{1,2}):(\d{2})\s*[-〜~]\s*(\d{1,2}):(\d{2})/);
+    if (!mm) { alert('書き方がちがいます。例: 2026-12 15:00-17:00'); return; }
+    const y = +mm[1], mo = +mm[2], f = +mm[3] * 60 + +mm[4], t = +mm[5] * 60 + +mm[6];
+    const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+    const QM = `query SeatSelection($date: Date!) { bookings(visitDate: $date) { edges { node { bookingStatus timeFrom timeTo numberOfPeople lastNameKana lastName seats { name } } } } }`;
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;overflow:auto;padding:16px;font:15px sans-serif;color:#222';
+    box.innerHTML = '<p>調べています… <span id="smp">0</span>/' + days + '日</p>'; document.body.appendChild(box);
+    const tm = x => +x.slice(0, 2) * 60 + +x.slice(3, 5);
+    const lines = [], esc = x => String(x).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    let hitN = 0, hitP = 0, err = '';
+    for (let d = 1; d <= days; d++) {
+      const ds = y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      try {
+        const r = await fetch('/graphql', { method: 'POST', credentials: 'include', headers: { 'accept': 'application/graphql-response+json,application/json;q=0.9', 'content-type': 'application/json', 'x-restaurant-id': rid, 'x-from': location.origin }, body: JSON.stringify({ operationName: 'SeatSelection', variables: { date: ds }, query: QM }) });
+        const j = await r.json(); if (!j.data) throw new Error(JSON.stringify(j.errors || j).slice(0, 120));
+        const bs = j.data.bookings.edges.map(e => e.node).filter(n => !/CANCEL/.test(n.bookingStatus || '') && tm(n.timeFrom) < t && tm(n.timeTo) > f)
+          .sort((a, b) => tm(a.timeFrom) - tm(b.timeFrom));
+        if (bs.length) { hitN += bs.length; hitP += bs.reduce((a, n) => a + n.numberOfPeople, 0);
+          lines.push(ds.slice(5) + '（' + '日月火水木金土'[new Date(ds + 'T00:00:00').getDay()] + '） ' + bs.length + '組: ' + bs.map(n => n.timeFrom.slice(0, 5) + '〜' + n.timeTo.slice(0, 5) + ' ' + (n.lastNameKana || n.lastName || '') + '様 ' + n.numberOfPeople + '名 ' + n.seats.map(s => s.name).join('+')).join(' ／ ')); }
+      } catch (e) { err = String(e.message || e); lines.push(ds.slice(5) + ' 読めませんでした'); }
+      const c = document.getElementById('smp'); if (c) c.textContent = d;
+    }
+    const head = y + '年' + mo + '月 ' + mm[3] + ':' + mm[4] + '〜' + mm[5] + ':' + mm[6] + ' にかかる予約: ' + hitN + '組 ' + hitP + '名';
+    const txt = head + '\n' + (lines.length ? lines.join('\n') : '（ありません）');
+    box.innerHTML = '<h2 style="font-size:20px;margin:0 0 8px">' + esc(head) + '</h2>' + (err ? '<p style="color:#c00">一部読めませんでした: ' + esc(err) + '</p>' : '')
+      + '<p><button id="smc" style="font-size:15px;padding:6px 14px">この結果をコピー</button> <button id="smx" style="font-size:15px;padding:6px 14px">閉じる</button></p>'
+      + '<pre style="white-space:pre-wrap;font:15px/1.7 sans-serif">' + esc(lines.length ? lines.join('\n') : 'この時間帯にかかる予約はありません。') + '</pre>';
+    document.getElementById('smx').onclick = () => box.remove();
+    document.getElementById('smc').onclick = () => { navigator.clipboard.writeText(txt).then(() => alert('コピーしました。つむぎに貼りつけて送ってください'), () => alert('コピーできませんでした。画面の文字を長押しで選んでコピーしてください')); };
+  };
   // iPadでも動くように、別窓は使わず今の画面を整理表に切り替える
   const w = window;
   const ov = document.createElement('div');
@@ -439,7 +475,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     const d = j.data, oh = d.calendarDate && d.calendarDate.officeHour || {};
     const now = new Date(Date.now() + 9 * 3600e3);
     const norm = {
-      date, arrange: date === jst, navJs: 'window.__seiriGo', open: oh.lunchTimeFrom || oh.dinnerTimeFrom || '11:00', close: oh.dinnerTimeTo || oh.lunchTimeTo || '21:00',
+      date, arrange: date === jst, navJs: 'window.__seiriGo', monthJs: 'window.__seiriMonth()', open: oh.lunchTimeFrom || oh.dinnerTimeFrom || '11:00', close: oh.dinnerTimeTo || oh.lunchTimeTo || '21:00',
       made: (now.getUTCMonth() + 1) + '/' + now.getUTCDate() + ' ' + now.getUTCHours() + ':' + String(now.getUTCMinutes()).padStart(2, '0'),
       reloadJs: "clearTimeout(window.__seiriTimer);location.href='/tn/time-schedule/" + date + "?r='+Date.now()",
       autoNote: '5分ごとに自動で更新',
