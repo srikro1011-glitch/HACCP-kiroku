@@ -5,6 +5,7 @@ function seiriBuild(norm) {
   const toM = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const live = norm.bookings.filter(b => !/CANCEL/.test(b.status || '') && b.seats.length);
+  live.forEach((b, i) => { b.id = i; });
   const isCounter = s => /カウンター/.test(s.type);
 
   // ---- カウンターの並べ直し ----
@@ -169,7 +170,7 @@ function seiriBuild(norm) {
   function box(b, top, h, cls, sub) {
     const r0 = top / RH, rn = h / RH;
     cls = cls === 'warn' ? 'warn' : (b.n <= 1 ? 'p1' : b.n === 2 ? 'p2' : 'p3');
-    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-r="${r0}" data-s="${rn}" data-p="${b.n}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
+    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-id="${b.id}" data-a="${toM(b.from)}" data-b="${toM(b.to)}" data-t="${esc(b.from + '〜' + b.to)}" data-r="${r0}" data-s="${rn}" data-p="${b.n}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
       <span class="nm">${esc(b.name.split(' ')[0])}</span><span class="pp">${b.n}名</span>${b.req ? '<span class="rq">★</span>' : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</div>`;
   }
   function arrRow(list) { // 30分ごと・1時間ごとの来店人数と合計（時間の下にそろえる）
@@ -288,6 +289,17 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .bx.ov{outline:3px solid #ff2d2d;outline-offset:-3px}
 .hint{font-size:12px;color:#666}
 .edn{color:#b00;font-weight:bold;font-size:12px}
+#sp{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
+#sp .cd{background:#fff;border-radius:10px;max-width:760px;width:100%;padding:14px 16px;font-size:15px;color:#222}
+#sp h3{margin:0 0 4px;font-size:19px}#sp .sm{font-size:13px;color:#555;margin:0 0 8px}
+#sp .gl{font-weight:bold;margin:10px 0 4px}#sp .gs{display:flex;flex-wrap:wrap;gap:6px}
+#sp .st{min-width:64px;min-height:46px;border:2px solid #999;border-radius:8px;background:#fff;font-size:15px;padding:2px 6px;line-height:1.15;color:#222}
+#sp .st small{display:block;font-size:11px;color:#b00}
+#sp .st.on{background:#1f5fbf;border-color:#123d80;color:#fff}#sp .st.on small{color:#ffd400}
+#sp .st.bz{background:#f1f1f1;border-style:dashed}
+#sp .now{margin:10px 0 0;font-weight:bold}#sp .ft{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+#sp .ft button{font-size:17px;padding:10px 22px;border-radius:8px;border:2px solid #999;background:#fff}#sp .ft .ok{background:#1e7a3c;border-color:#0f4d24;color:#fff}
+@media print{#sp{display:none}}
 .free{position:absolute;border:2px solid #e00000;border-radius:4px;background:transparent;pointer-events:none}
 .vl{position:absolute;top:0;bottom:0;border-left:1px solid #888}
 .vl.half{border-left:1px dashed #9a9a9a}
@@ -334,17 +346,17 @@ td.b{font-weight:bold}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar{display:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:118mm!important}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
-<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button>${norm.monthJs ? `<button class="sec" onclick="${norm.monthJs}">1か月の時間帯チェック</button>` : ''}<button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">枠を長押しすると、つかんで別の席へ移せます（カウンター⇔テーブルも可）</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップすると、席を選び直せます（席の追加・カウンター⇔テーブルも可）。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
-<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり<span style="background:#fff;border:2px solid #e00000"></span>20時までに1時間半あいている枠</div>
-${chart(cGrid, freeC + cHtml, cSeats.length, 'pc', arrRow(live.filter(b => b.seats.some(n => cSeats.includes(n)))))}
+<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
+${chart(cGrid, cHtml, cSeats.length, 'pc', arrRow(live.filter(b => b.seats.some(n => cSeats.includes(n)))))}
 <div class="pg"></div>
 <h1>② テーブル・個室　${mo}月${da}日（${wd}）</h1>
 <div class="meta">${arrange && tMoved ? '2名テーブルの団体は T1〜T4・T5〜T8 の中にまとめ直し済み（' + tMoved + '組・食べログ側は書き換えていません）／ほかは食べログのまま' : '食べログのままの席です'}</div>${tOk ? '' : '<div class="ng">※ 2名テーブルの団体を T1〜T4・T5〜T8 にまとめきれなかったので、食べログの席のままです。</div>'}
-<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり<span style="background:#fff;border:2px solid #e00000"></span>20時までに1時間半あいている枠</div>
-${chart(tGrid, freeT + tHtml, tSeats.length, 'pt', arrRow(live.filter(b => b.seats.some(n => tSeats.includes(n)))))}
+<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
+${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => b.seats.some(n => tSeats.includes(n)))))}
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
@@ -373,20 +385,50 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   function edited(){clearTimeout(window.__seiriTimer);var u=document.getElementById('undoBtn');if(u)u.style.display='';
     var m=document.querySelector('.meta');if(m&&!document.querySelector('.edn')){var e=document.createElement('div');e.className='edn';e.textContent='※ 手で動かした枠があります（黄色の点線）。自動更新は止めました。下の来店人数の行は動かす前の数です。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}}
   function follow(){if(!cur||!cur.moved)return;cur.bx.style.transform='translateY('+(lastY+window.scrollY-cur.py)+'px)';}
+
+  // タップで席を選び直す（複数の席も選べる）
+  function boxesOf(id){return [].slice.call(document.querySelectorAll('.bx[data-id="'+id+'"]'));}
+  function seatsOfBox(b){var pl=b.closest('.plot'),r=+b.getAttribute('data-r'),s=+b.getAttribute('data-s');return rowsOf(pl).slice(r,r+s);}
+  function seatsOf(id){var out=[];boxesOf(id).forEach(function(b){seatsOfBox(b).forEach(function(n){if(out.indexOf(n)<0)out.push(n);});});return out;}
+  function busyMap(bx){var a=+bx.getAttribute('data-a'),e=+bx.getAttribute('data-b'),id=bx.getAttribute('data-id'),m={};
+    document.querySelectorAll('.plot .bx').forEach(function(o){if(o.getAttribute('data-id')===id)return;var oa=+o.getAttribute('data-a'),oe=+o.getAttribute('data-b');
+      if(oa<e&&a<oe){var nm=(o.querySelector('.nm')||{}).textContent||'';seatsOfBox(o).forEach(function(n){m[n]=nm;});}});return m;}
+  function render(id,seats){var old=boxesOf(id),tpl=old[0];if(!tpl)return;
+    old.forEach(function(b){b.parentNode.removeChild(b);});
+    document.querySelectorAll('.plot').forEach(function(pl){var rows=rowsOf(pl),idx=seats.map(function(n){return rows.indexOf(n);}).filter(function(i){return i>=0;}).sort(function(x,y){return x-y;});
+      var runs=[];idx.forEach(function(i){var l=runs[runs.length-1];if(l&&l[0]+l[1]===i)l[1]++;else runs.push([i,1]);});
+      runs.forEach(function(rn){var b=tpl.cloneNode(true);b.classList.remove('held','drag','ov');place(b,pl,rn[0],rn[1]);b.querySelector('.sub').textContent=seats.length>1?seats.join('+'):'';b.classList.add('ed');});});}
+  function openPanel(bx){var id=bx.getAttribute('data-id'),cur0=seatsOf(id),sel=cur0.slice(),bz=busyMap(bx);
+    var nm=(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'';
+    var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
+    var sp=document.createElement('div');sp.id='sp';
+    var html='<div class="cd"><h3>'+nm+' 様　'+p+'名　'+tt+'</h3><p class="sm">座る席をタップして選んでください（いくつでも選べます）。もう一度タップで外れます。点線の席は同じ時間に別の予約があります。</p>';
+    var groups=[];document.querySelectorAll('.plot').forEach(function(pl){groups.push({lab:pl.classList.contains('pc')?'カウンター':'テーブル・個室',rows:rowsOf(pl)});});
+    groups.forEach(function(g){html+='<div class="gl">'+g.lab+'</div><div class="gs">';g.rows.forEach(function(n){html+='<button class="st" data-n="'+n.replace(/"/g,'&quot;')+'">'+n+(bz[n]?'<small>'+bz[n]+'</small>':'')+'</button>';});html+='</div>';});
+    html+='<div class="now"></div><div class="ft"><button class="cx">やめる</button><button class="ok">この席にする</button></div></div>';
+    sp.innerHTML=html;document.body.appendChild(sp);
+    function paint(){[].forEach.call(sp.querySelectorAll('.st'),function(b){var n=b.getAttribute('data-n');b.classList.toggle('on',sel.indexOf(n)>=0);b.classList.toggle('bz',!!bz[n]&&sel.indexOf(n)<0);});
+      sp.querySelector('.now').textContent='えらんだ席: '+(sel.length?sel.join('+'):'なし')+'（今: '+cur0.join('+')+'）';}
+    paint();
+    sp.addEventListener('click',function(ev){var t=ev.target.closest('button');if(ev.target===sp||(t&&t.classList.contains('cx'))){sp.parentNode.removeChild(sp);return;}if(!t)return;
+      if(t.classList.contains('st')){var n=t.getAttribute('data-n'),i=sel.indexOf(n);if(i>=0)sel.splice(i,1);else sel.push(n);paint();return;}
+      if(t.classList.contains('ok')){if(!sel.length){alert('席を1つ以上えらんでください');return;}
+        var all=[];groups.forEach(function(g){g.rows.forEach(function(n){if(sel.indexOf(n)>=0)all.push(n);});});
+        sp.parentNode.removeChild(sp);if(all.slice().sort().join()===cur0.slice().sort().join())return;render(id,all);edited();overlaps();}});}
   var HOLD=500;
   function cancel(){clearTimeout(cur&&cur.ht);clearInterval(timer);if(cur){cur.bx.classList.remove('drag','held');cur.bx.style.transform='';}cur=null;}
   document.addEventListener('pointerdown',function(ev){var bx=ev.target.closest&&ev.target.closest('.bx');if(!bx||!bx.closest('.plot'))return;
-    var br=bx.getBoundingClientRect();cur={bx:bx,py:ev.clientY+window.scrollY,sy:ev.clientY,grab:ev.clientY-br.top,moved:false,held:false,id:ev.pointerId};lastY=ev.clientY;
+    var br=bx.getBoundingClientRect();cur={bx:bx,py:ev.clientY+window.scrollY,sy:ev.clientY,sx:ev.clientX,grab:ev.clientY-br.top,moved:false,held:false,id:ev.pointerId};lastY=ev.clientY;
     cur.ht=setTimeout(function(){if(!cur)return;cur.held=true;cur.bx.classList.add('held');try{cur.bx.setPointerCapture(cur.id);}catch(e){}
       if(navigator.vibrate)navigator.vibrate(30);
       timer=setInterval(function(){if(!cur||!cur.moved)return;var h=window.innerHeight;
         if(lastY>h-70){window.scrollBy(0,14);follow();}else if(lastY<70){window.scrollBy(0,-14);follow();}},16);},HOLD);});
   document.addEventListener('touchmove',function(ev){if(cur&&cur.held)ev.preventDefault();},{passive:false});
   document.addEventListener('pointermove',function(ev){if(!cur)return;lastY=ev.clientY;
-    if(!cur.held){if(Math.abs(ev.clientY-cur.sy)>8)cancel();return;}
+    if(!cur.held){if(Math.abs(ev.clientY-cur.sy)>8||Math.abs(ev.clientX-cur.sx)>8)cancel();return;}
     if(!cur.moved&&Math.abs(ev.clientY+window.scrollY-cur.py)<6)return;
     if(!cur.moved){cur.moved=true;cur.bx.classList.add('drag');}follow();});
-  function end(ev){clearTimeout(cur&&cur.ht);clearInterval(timer);if(!cur)return;var c=cur;cur=null;c.bx.classList.remove('drag','held');c.bx.style.transform='';if(!c.held||!c.moved)return;
+  function end(ev){clearTimeout(cur&&cur.ht);clearInterval(timer);if(!cur)return;var c=cur;cur=null;c.bx.classList.remove('drag','held');c.bx.style.transform='';if(!c.held&&!c.moved&&!c.cx){openPanel(c.bx);return;}if(!c.held||!c.moved)return;
     var y=lastY,tg=null;document.querySelectorAll('.plot').forEach(function(pl){var r=pl.getBoundingClientRect();if(y>=r.top-10&&y<=r.bottom+10)tg=pl;});
     if(!tg)return;
     var src=c.bx.closest('.plot'),s=+c.bx.getAttribute('data-s'),p=+c.bx.getAttribute('data-p')||1;
@@ -475,7 +517,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     const d = j.data, oh = d.calendarDate && d.calendarDate.officeHour || {};
     const now = new Date(Date.now() + 9 * 3600e3);
     const norm = {
-      date, arrange: date === jst, navJs: 'window.__seiriGo', monthJs: 'window.__seiriMonth()', open: oh.lunchTimeFrom || oh.dinnerTimeFrom || '11:00', close: oh.dinnerTimeTo || oh.lunchTimeTo || '21:00',
+      date, arrange: date === jst, navJs: 'window.__seiriGo', open: oh.lunchTimeFrom || oh.dinnerTimeFrom || '11:00', close: oh.dinnerTimeTo || oh.lunchTimeTo || '21:00',
       made: (now.getUTCMonth() + 1) + '/' + now.getUTCDate() + ' ' + now.getUTCHours() + ':' + String(now.getUTCMinutes()).padStart(2, '0'),
       reloadJs: "clearTimeout(window.__seiriTimer);location.href='/tn/time-schedule/" + date + "?r='+Date.now()",
       autoNote: '5分ごとに自動で更新',
