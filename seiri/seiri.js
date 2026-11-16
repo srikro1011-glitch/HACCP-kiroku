@@ -8,11 +8,78 @@ function seiriBuild(norm) {
   live.forEach((b, i) => { b.id = i; });
   const isCounter = s => /カウンター/.test(s.type);
 
+  const arrange = norm.arrange !== false; // 当日だけ並べ直す。ほかの日は食べログのまま
+  // ---- 2名テーブル（T1〜T9）の団体を T1〜T4 / T5〜T8 の中にまとめる（当日だけ）----
+  // T1〜T8は2名掛けが並び、4と5の間に柱。T9は離れているので団体には使わない。
+  const tNow = new Map(); let tMoved = 0, tOk = true;
+  (function () {
+    const POOL = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'].filter(n => norm.seats.some(s => s.name === n));
+    if (!arrange || POOL.length < 9) return;
+    const BLOCKS = [[0, 1, 2, 3], [4, 5, 6, 7]];
+    const inPool = b => b.seats.length && b.seats.every(n => POOL.includes(n));
+    const fixed = live.filter(b => !inPool(b) && b.seats.some(n => POOL.includes(n)))
+      .map(b => ({ s: toM(b.from), e: toM(b.to), idx: b.seats.map(n => POOL.indexOf(n)).filter(i => i >= 0) }));
+    const tb = live.filter(inPool).map(b => ({ b, s: toM(b.from), e: toM(b.to), k: b.seats.length, orig: b.seats.map(n => POOL.indexOf(n)) }))
+      .sort((a, c) => c.k - a.k || a.s - c.s);
+    const pl = [];
+    const busy = (i, x) => fixed.some(f => f.s < x.e && x.s < f.e && f.idx.includes(i)) || pl.some(p => p.x.s < x.e && x.s < p.x.e && p.at.includes(i));
+    function cand(x) {
+      const out = [];
+      if (x.k === 1) for (let i = 0; i < 9; i++) out.push([i]);
+      else BLOCKS.forEach(bl => { for (let st = 0; st + x.k <= bl.length; st++) out.push(bl.slice(st, st + x.k)); });
+      return out.filter(a => a.every(i => !busy(i, x)))
+        .map(a => ({ a, keep: a.filter(i => x.orig.includes(i)).length, far: x.k === 1 && a[0] === 8 ? 1 : 0,
+          bump: x.k > 1 ? tb.filter(y => y !== x && !pl.some(p => p.x === y) && y.s < x.e && x.s < y.e && y.orig.some(i => a.includes(i))).length : 0 }))
+        .sort((p, q) => p.bump - q.bump || q.keep - p.keep || p.far - q.far || p.a[0] - q.a[0]);
+    }
+    let steps = 0;
+    function dfs(i) {
+      if (i === tb.length) return true;
+      if (++steps > 20000) return false;
+      for (const c of cand(tb[i])) { pl.push({ x: tb[i], at: c.a }); if (dfs(i + 1)) return true; pl.pop(); }
+      return false;
+    }
+    if (tb.length > 0 && !tb.some(x => x.k > 4) && dfs(0)) {
+      pl.forEach(p => { const ns = p.at.slice().sort((a, c) => a - c).map(i => POOL[i]); if (ns.join() !== p.x.b.seats.join()) { tNow.set(p.x.b, ns); tMoved++; } });
+    } else if (tb.some(x => x.k > 1)) tOk = false;
+  })();
+
+  // ---- カウンターの予約を、空いているテーブルへ振る（当日だけ）----
+  // テーブルを先に埋めて、カウンターはゆったり。T16はあけておく。個室は使わない。
+  // 「テーブル希望」と書いてある予約を先に。1〜2名は2名卓(T1〜T9)→なければ4名卓、3〜4名は4名卓。
+  const toT = new Set();
+  (function () {
+    if (!arrange) return;
+    const T2 = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'], T4 = ['T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T17', 'T18'];
+    const has = n => norm.seats.some(s => s.name === n && !s.blocked);
+    const cName = new Set(norm.seats.filter(isCounter).map(s => s.name));
+    const occ = {};
+    live.forEach(b => { if (b.seats.every(n => cName.has(n))) return; (tNow.get(b) || b.seats).forEach(n => (occ[n] = occ[n] || []).push([toM(b.from), toM(b.to)])); });
+    const free = (t, a, e) => has(t) && !(occ[t] || []).some(x => x[0] < e && a < x[1]);
+    const txt = b => (b.req || '') + ' ' + (b.memo || '');
+    const wantT = b => /テーブル/.test(txt(b)), wantC = b => /カウンター/.test(txt(b)) && !wantT(b);
+    const list = live.filter(b => b.seats.length && b.seats.every(n => cName.has(n)) && b.n <= 4 && !wantC(b))
+      .sort((x, y) => (wantT(y) - wantT(x)) || (y.n - x.n) || (toM(x.from) - toM(y.from)));
+    list.forEach(b => {
+      const a = toM(b.from), e = toM(b.to);
+      const pool = b.n <= 2 ? T2.concat(T4) : T4;
+      // すき間が少ない卓（前の予約の終わりにぴったり続く卓）を優先
+      const cand = pool.filter(t => free(t, a, e)).map(t => {
+        const prevEnd = Math.max(-1, ...(occ[t] || []).filter(x => x[1] <= a).map(x => x[1]));
+        const nextSt = Math.min(9999, ...(occ[t] || []).filter(x => x[0] >= e).map(x => x[0]));
+        return { t, big: b.n <= 2 && T4.includes(t) ? 1 : 0, gap: (prevEnd < 0 ? 600 : a - prevEnd) + (nextSt > 9000 ? 600 : nextSt - e) };
+      }).sort((p, q) => p.big - q.big || p.gap - q.gap || pool.indexOf(p.t) - pool.indexOf(q.t));
+      if (!cand.length) return;
+      const t = cand[0].t;
+      (occ[t] = occ[t] || []).push([a, e]); tNow.set(b, [t]); toT.add(b);
+    });
+  })();
+
   // ---- カウンターの並べ直し ----
   const used = new Set(live.flatMap(b => b.seats));
   const cSeats = norm.seats.filter(s => isCounter(s) && (!s.blocked || used.has(s.name))).map(s => s.name);
   const N = cSeats.length;
-  const cBook = live.filter(b => b.seats.some(n => cSeats.includes(n)))
+  const cBook = live.filter(b => !toT.has(b) && b.seats.some(n => cSeats.includes(n)))
     .map((b, i) => ({ ...b, s: toM(b.from), e: toM(b.to), k: Math.min(b.n, b.seats.length) || 1, orig: b.seats.map(n => cSeats.indexOf(n)), key: i }))
     .sort((a, b) => a.s - b.s || b.k - a.k || Math.min(...a.orig) - Math.min(...b.orig));
   const placed = []; // {b, start}
@@ -59,7 +126,6 @@ function seiriBuild(norm) {
     return false;
   }
   let solved = false;
-  const arrange = norm.arrange !== false; // 当日だけ並べ直す。ほかの日は食べログのまま
   // いくつかの置き方を試して、点数が一番いいものを使う
   let bestSet = null, bestSc = -1;
   const scoreOf = () => placed.reduce((a, p) => { let k = 0; for (let x = p.start; x < p.start + p.b.k; x++) if (p.b.orig.includes(x)) k++; return a + k; }, 0);
@@ -72,7 +138,7 @@ function seiriBuild(norm) {
   if (solved) {
     const freeFor = (p, st) => { for (let x = st; x < st + p.b.k; x++) if (placed.some(q => q !== p && q.start <= x && x < q.start + q.b.k && overlaps(q.b, p.b))) return false; return true; };
     const nbFree = (p, x) => x < 0 || x >= N || !placed.some(q => q !== p && q.start <= x && x < q.start + q.b.k && overlaps(q.b, p.b));
-    const score = () => placed.reduce((a, p) => { let k = 0; for (let x = p.start; x < p.start + p.b.k; x++) if (p.b.orig.includes(x)) k++; return a + 2 * nbFree(p, p.start - 1) + 2 * nbFree(p, p.start + p.b.k) + k; }, 0);
+    const score = () => placed.reduce((a, p) => { let k = 0; for (let x = p.start; x < p.start + p.b.k; x++) if (p.b.orig.includes(x)) k++; return a + 4 * nbFree(p, p.start - 1) + 4 * nbFree(p, p.start + p.b.k) + k; }, 0);
     let best = score();
     for (let pass = 0; pass < 30; pass++) {
       let improved = false;
@@ -110,41 +176,9 @@ function seiriBuild(norm) {
     if (p.now.join() !== p.b.seats.join()) moves.push(p);
   });
   moves.sort((a, b) => a.b.s - b.b.s);
+  const cNow = new Map(); placed.forEach(p => { const o = live.find(b => b.id === p.b.id); if (o) cNow.set(o, p.now); });
+  const seatsNow = b => tNow.get(b) || cNow.get(b) || b.seats;
 
-  // ---- 2名テーブル（T1〜T9）の団体を T1〜T4 / T5〜T8 の中にまとめる（当日だけ）----
-  // T1〜T8は2名掛けが並び、4と5の間に柱。T9は離れているので団体には使わない。
-  const tNow = new Map(); let tMoved = 0, tOk = true;
-  (function () {
-    const POOL = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'].filter(n => norm.seats.some(s => s.name === n));
-    if (!arrange || POOL.length < 9) return;
-    const BLOCKS = [[0, 1, 2, 3], [4, 5, 6, 7]];
-    const inPool = b => b.seats.length && b.seats.every(n => POOL.includes(n));
-    const fixed = live.filter(b => !inPool(b) && b.seats.some(n => POOL.includes(n)))
-      .map(b => ({ s: toM(b.from), e: toM(b.to), idx: b.seats.map(n => POOL.indexOf(n)).filter(i => i >= 0) }));
-    const tb = live.filter(inPool).map(b => ({ b, s: toM(b.from), e: toM(b.to), k: b.seats.length, orig: b.seats.map(n => POOL.indexOf(n)) }))
-      .sort((a, c) => c.k - a.k || a.s - c.s);
-    const pl = [];
-    const busy = (i, x) => fixed.some(f => f.s < x.e && x.s < f.e && f.idx.includes(i)) || pl.some(p => p.x.s < x.e && x.s < p.x.e && p.at.includes(i));
-    function cand(x) {
-      const out = [];
-      if (x.k === 1) for (let i = 0; i < 9; i++) out.push([i]);
-      else BLOCKS.forEach(bl => { for (let st = 0; st + x.k <= bl.length; st++) out.push(bl.slice(st, st + x.k)); });
-      return out.filter(a => a.every(i => !busy(i, x)))
-        .map(a => ({ a, keep: a.filter(i => x.orig.includes(i)).length, far: x.k === 1 && a[0] === 8 ? 1 : 0,
-          bump: x.k > 1 ? tb.filter(y => y !== x && !pl.some(p => p.x === y) && y.s < x.e && x.s < y.e && y.orig.some(i => a.includes(i))).length : 0 }))
-        .sort((p, q) => p.bump - q.bump || q.keep - p.keep || p.far - q.far || p.a[0] - q.a[0]);
-    }
-    let steps = 0;
-    function dfs(i) {
-      if (i === tb.length) return true;
-      if (++steps > 20000) return false;
-      for (const c of cand(tb[i])) { pl.push({ x: tb[i], at: c.a }); if (dfs(i + 1)) return true; pl.pop(); }
-      return false;
-    }
-    if (tb.length > 0 && !tb.some(x => x.k > 4) && dfs(0)) {
-      pl.forEach(p => { const ns = p.at.slice().sort((a, c) => a - c).map(i => POOL[i]); if (ns.join() !== p.x.b.seats.join()) { tNow.set(p.x.b, ns); tMoved++; } });
-    } else if (tb.some(x => x.k > 1)) tOk = false;
-  })();
 
   // ---- 時間軸 ----
   const t0 = Math.floor(Math.min(toM(norm.open), ...live.map(b => toM(b.from))) / 60) * 60;
@@ -183,8 +217,8 @@ function seiriBuild(norm) {
       + `<div class="arr"><div class="arl">1時間ごと</div><div class="trk">${h60}</div></div>`
       + `<div class="arr tot"><div class="arl">合計</div><div class="trk"><div class="ac" style="left:0;justify-content:flex-start;padding-left:8px;border:0">${list.length}組　${tot}名</div></div></div>`;
   }
-  function chart(g, inner, n, cls, foot) {
-    return `<div class="chart"><div class="cin">${axis()}<div class="plot ${cls}" data-n="${n}" data-rows="${esc(g.rows.join('|'))}" style="height:${n * RH}px">${g.head}<div class="trk">${g.lines}${inner}</div></div>${foot || ''}</div></div>`;
+  function chart(g, inner, n, cls, foot, ph) {
+    return `<div class="chart"><div class="cin">${axis()}<div class="plot ${cls}" data-n="${n}" data-rows="${esc(g.rows.join('|'))}" style="height:${n * RH}px;--ph:${ph || 118}mm">${g.head}<div class="trk">${g.lines}${inner}</div></div>${foot || ''}</div></div>`;
   }
 
   // カウンター
@@ -204,11 +238,11 @@ function seiriBuild(norm) {
   // テーブル・個室（そのまま）
   const tSeats = norm.seats.filter(s => !isCounter(s)).map(s => s.name);
   const tGrid = grid(tSeats); let tHtml = '';
-  live.filter(b => b.seats.some(n => tSeats.includes(n))).forEach(b => {
+  live.filter(b => seatsNow(b).some(n => tSeats.includes(n))).forEach(b => {
     const ts = tNow.get(b) || b.seats;
     const idx = ts.map(n => tSeats.indexOf(n)).filter(i => i >= 0).sort((a, c) => a - c);
     const contiguous = idx.every((v, j) => j === 0 || v === idx[j - 1] + 1);
-    if (contiguous) tHtml += box(b, idx[0] * RH, idx.length * RH, 'st', idx.length > 1 ? ts.join('+') : '');
+    if (contiguous) tHtml += box(b, idx[0] * RH, idx.length * RH, 'st', toT.has(b) ? 'カウンターから' : idx.length > 1 ? ts.join('+') : '');
     else idx.forEach(i => { tHtml += box(b, i * RH, RH, 'st', ts.join('+')); });
   });
 
@@ -240,7 +274,10 @@ function seiriBuild(norm) {
   const moveRows = moves.map(p => `<tr><td>${esc(p.b.from)}</td><td>${esc(p.b.name.split(' ')[0])} 様</td><td>${p.b.n}名</td><td class="o">${esc(p.b.seats.join('・'))}</td><td>→</td><td class="n">${esc(p.now.join('・'))}</td></tr>`).join('');
   const reqRows = reqs.map(b => `<tr><td>${esc(b.from)}</td><td>${esc(b.name.split(' ')[0])} 様</td><td>${b.n}名</td><td>${esc((nowSeat[b.from + b.name] || b.seats).join('・'))}</td><td>${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}</td></tr>`).join('');
   // 時間別の来店人数（30分ごと）
-  const isC = b => b.seats.some(n => cSeats.includes(n));
+  const isC = b => seatsNow(b).some(n => cSeats.includes(n));
+  const reqC = reqs.filter(b => seatsNow(b).some(n => cSeats.includes(n))), reqT = reqs.filter(b => seatsNow(b).some(n => tSeats.includes(n)));
+  const reqBox = list => list.length ? `<div class="rqb"><div class="rqh">要望・メモのある予約（${list.length}組）</div><table>${list.map(b => `<tr><td>${esc(b.from)}</td><td>${esc(b.name.split(' ')[0])} 様</td><td>${b.n}名</td><td class="st">${esc(seatsNow(b).join('・'))}</td><td>${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}</td></tr>`).join('')}</table></div>` : '';
+  const phOf = list => list.length ? Math.max(78, 112 - list.length * 6) : 118;
   let hourRows = '', mx = 0;
   const slots = [];
   for (let m = t0; m < t1; m += 30) {
@@ -289,6 +326,7 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .bx.ov{outline:3px solid #ff2d2d;outline-offset:-3px}
 .hint{font-size:12px;color:#666}
 .edn{color:#b00;font-weight:bold;font-size:12px}
+.rqb{margin-top:4px;border:2px solid #c45a00;border-radius:4px;padding:2px 6px;background:#fff8ef}.rqh{font-weight:bold;color:#c45a00;font-size:13px}.rqb table{border-collapse:collapse;width:100%}.rqb td{font-size:13px;padding:1px 6px;border-top:1px solid #eedcc8;vertical-align:top;white-space:nowrap}.rqb td:last-child{white-space:normal;width:100%}.rqb td.st{font-weight:bold}
 #sp{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
 #sp .cd{background:#fff;border-radius:10px;max-width:760px;width:100%;padding:14px 16px;font-size:15px;color:#222}
 #sp h3{margin:0 0 4px;font-size:19px}#sp .sm{font-size:13px;color:#555;margin:0 0 8px}
@@ -344,19 +382,19 @@ td.r{text-align:right}
 td.b{font-weight:bold}
 .hb{height:10px;min-width:0;background:#c0392b;border-radius:2px}
 .ng{color:#d33;font-weight:bold}
-@media print{.bar{display:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:118mm!important}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
+@media print{.bar{display:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:var(--ph,118mm)!important}.rqb td{font-size:11px;padding:0 4px}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
 <div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップすると、席を選び直せます（席の追加・カウンター⇔テーブルも可）。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
 <div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
-${chart(cGrid, cHtml, cSeats.length, 'pc', arrRow(live.filter(b => b.seats.some(n => cSeats.includes(n)))))}
+${chart(cGrid, cHtml, cSeats.length, 'pc', arrRow(live.filter(b => seatsNow(b).some(n => cSeats.includes(n)))) + reqBox(reqC), phOf(reqC))}
 <div class="pg"></div>
 <h1>② テーブル・個室　${mo}月${da}日（${wd}）</h1>
-<div class="meta">${arrange && tMoved ? '2名テーブルの団体は T1〜T4・T5〜T8 の中にまとめ直し済み（' + tMoved + '組・食べログ側は書き換えていません）／ほかは食べログのまま' : '食べログのままの席です'}</div>${tOk ? '' : '<div class="ng">※ 2名テーブルの団体を T1〜T4・T5〜T8 にまとめきれなかったので、食べログの席のままです。</div>'}
+<div class="meta">${arrange ? (toT.size ? 'カウンターの予約から' + toT.size + '組を空いているテーブルへ移しました（T16はあけています）／' : '') + (tMoved ? '2名テーブルの団体は T1〜T4・T5〜T8 の中にまとめ直し済み（' + tMoved + '組）／' : '') + '食べログ側の席は書き換えていません' : '食べログのままの席です'}</div>${tOk ? '' : '<div class="ng">※ 2名テーブルの団体を T1〜T4・T5〜T8 にまとめきれなかったので、食べログの席のままです。</div>'}
 <div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
-${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => b.seats.some(n => tSeats.includes(n)))))}
+${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).some(n => tSeats.includes(n)))) + reqBox(reqT), phOf(reqT))}
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
