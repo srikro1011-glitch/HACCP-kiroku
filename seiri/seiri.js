@@ -386,7 +386,7 @@ td.b{font-weight:bold}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar{display:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:var(--ph,118mm)!important}.rqb td{font-size:11px;padding:0 4px}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 </style></head><body>
-<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らすができます。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button id="fixBtn" style="background:#c62828">この席で確定</button><button class="sec" id="unfixBtn" style="display:none">確定をやめて組み直す</button><span id="fixNote" style="font-weight:bold;color:#c62828"></span><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らすができます。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
@@ -434,6 +434,28 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   function arrSave(a){window.__seiriArr=a;try{localStorage.setItem(AKEY,JSON.stringify(a));}catch(e){}}
   function arrPaint(){var a=arrList();document.querySelectorAll('.plot .bx').forEach(function(b){b.classList.toggle('arr',a.indexOf(b.getAttribute('data-k'))>=0);});}
   arrPaint();
+
+  // 確定: 今の席をこのiPadに保存し、開き直しても自動更新でも同じ並びにする
+  var FKEY='seiri-fix-'+DATE;
+  function fixGet(){try{return JSON.parse(localStorage.getItem(FKEY)||'null');}catch(e){return window.__seiriFix||null;}}
+  function fixSet(v){window.__seiriFix=v;try{if(v)localStorage.setItem(FKEY,JSON.stringify(v));else localStorage.removeItem(FKEY);}catch(e){}}
+  function allIds(){var o={};document.querySelectorAll('.plot .bx').forEach(function(b){o[b.getAttribute('data-id')]=b.getAttribute('data-k');});return o;}
+  function rearm(){if(!window.__seiriGo)return;clearTimeout(window.__seiriTimer);window.__seiriTimer=setTimeout(function(){window.__seiriAuto=true;window.__seiriGo(DATE);},300000);}
+  function fixUi(){var f=fixGet(),n=document.getElementById('fixNote'),u=document.getElementById('unfixBtn'),b=document.getElementById('fixBtn');
+    if(n)n.textContent=f?'確定済み（'+f.at+'）':'';if(u)u.style.display=f?'':'none';if(b)b.textContent=f?'今の席で確定し直す':'この席で確定';}
+  (function applyFix(){var f=fixGet();if(!f||!f.seats)return;var ids=allIds(),changed=0;
+    Object.keys(ids).forEach(function(id){var k=ids[id],want=f.seats[k];if(!want)return;
+      if(seatsOf(id).slice().sort().join()!==want.slice().sort().join()){render(id,want);changed++;}});
+    document.querySelectorAll('.plot .bx.ed').forEach(function(b){b.classList.remove('ed');});
+    var news=Object.keys(ids).filter(function(id){return !f.seats[ids[id]];}).length;
+    overlaps();
+    var m=document.querySelector('.meta');if(m){var e=document.createElement('div');e.className='edn';e.textContent='※ '+f.at+' に確定した席で表示しています'+(news?'（確定のあとに入った予約が'+news+'組あります。赤い枠は重なりです）':'')+'。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}})();
+  fixUi();
+  document.getElementById('fixBtn').onclick=function(){var ids=allIds(),seats={};Object.keys(ids).forEach(function(id){seats[ids[id]]=seatsOf(id);});
+    var d=new Date(Date.now()+9*3600e3);fixSet({at:(d.getUTCMonth()+1)+'/'+d.getUTCDate()+' '+d.getUTCHours()+':'+String(d.getUTCMinutes()).padStart(2,'0'),seats:seats});
+    document.querySelectorAll('.plot .bx.ed').forEach(function(b){b.classList.remove('ed');});var x=document.querySelector('.edn');if(x)x.parentNode.removeChild(x);
+    var u=document.getElementById('undoBtn');if(u)u.style.display='none';fixUi();rearm();alert('この席で確定しました。閉じて開き直しても、この並びで出ます（このiPadだけ）。');};
+  document.getElementById('unfixBtn').onclick=function(){if(!confirm('確定をやめて、席を最初から組み直しますか？'))return;fixSet(null);if(window.__seiriGo)window.__seiriGo(DATE);else location.reload();};
   function openMenu(bx){var id=bx.getAttribute('data-id'),k=bx.getAttribute('data-k'),came=arrList().indexOf(k)>=0;
     var nm=(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'',q=bx.getAttribute('data-q')||'';
     var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
