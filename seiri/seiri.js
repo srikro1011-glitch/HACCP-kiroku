@@ -198,7 +198,7 @@ function seiriBuild(norm) {
     curN = Math.max(rows.length, 1);
     let lines = '';
     for (let m = t0; m <= t1; m += 30) lines += `<div class="vl${m % 60 ? ' half' : ''}" style="left:${pc(m)}"></div>`;
-    const stripes = rows.map((r, i) => `<div class="row${i % 2 ? ' odd' : ''}" style="top:${pr(i)};height:${pr(1)}"><div class="lab">${esc(r)}</div></div>`).join('');
+    const stripes = rows.map((r, i) => `<div class="row${i % 2 ? ' odd' : ''}" style="top:${pr(i)};height:${pr(1)}"><div class="lab">${esc(r)}</div><div class="lab r">${esc(r)}</div></div>`).join('');
     return { head: stripes, lines, rows };
   }
   function box(b, top, h, cls, sub) {
@@ -305,14 +305,15 @@ h1{font-size:20px;margin:0 0 2px}
 .bar button.sec{background:#fff;color:#c47a00}
 h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6px}
 .chart{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.cin{min-width:${LW + W}px}
+.cin{min-width:${LW * 2 + W}px}
 .axis{position:relative;height:18px;font-size:11px;color:#444}
-.trk{position:absolute;left:${LW}px;right:16px;top:0;bottom:0}
+.trk{position:absolute;left:${LW}px;right:${LW}px;top:0;bottom:0}
 .plot{position:relative}
 .tk{position:absolute;top:0;transform:translateX(-50%)}
 .row{position:absolute;left:0;right:0;border-bottom:1px solid #e3e3e3}
 .row.odd{background:#fafafa}
 .lab{position:absolute;left:0;width:${LW}px;height:100%;display:flex;align-items:center;padding-left:4px;font-size:12px;font-weight:bold;border-right:1px solid #bbb;background:#f2f2f2}
+.lab.r{left:auto;right:0;border-right:0;border-left:1px solid #bbb}
 .arr{position:relative;height:24px;border-top:1px solid #bbb;border-bottom:1px solid #bbb;background:#fff8ea}
 .arl{position:absolute;left:0;width:${LW}px;height:100%;display:flex;align-items:center;padding-left:3px;font-size:10px;font-weight:bold;background:#f2f2f2;border-right:1px solid #bbb}
 .arr:first-of-type,.plot+.arr{border-top:2px solid #444}
