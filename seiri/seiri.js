@@ -286,8 +286,14 @@ function seiriBuild(norm) {
     const sl = { m, g: arr.length, p: arr.reduce((a, b) => a + b.n, 0), pc: arr.filter(isC).reduce((a, b) => a + b.n, 0), in: inn.reduce((a, b) => a + b.n, 0) };
     sl.pt = sl.p - sl.pc; mx = Math.max(mx, sl.p); slots.push(sl);
   }
-  slots.filter(x => x.g || x.in).forEach(x => {
-    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.p || ''}</td><td class="r">${x.pc || ''}</td><td class="r">${x.pt || ''}</td><td class="r">${x.in}</td><td><div class="hb" style="width:${mx ? x.p / mx * 100 : 0}%"></div></td></tr>`;
+  // 釜：前（円卓）16個まで・後ろ20個まで。ふだんは前から、11:00だけ後ろから。点火は来店の15分前
+  const FRONT = 16, BACK = 20;
+  slots.filter(x => x.p).forEach(x => {
+    let fr, bk;
+    if (x.m === 11 * 60) { bk = Math.min(x.p, BACK); fr = Math.min(x.p - bk, FRONT); }
+    else { fr = Math.min(x.p, FRONT); bk = Math.min(x.p - fr, BACK); }
+    const over = x.p - fr - bk;
+    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.p}</td><td class="r k">${fr || ''}</td><td class="r k">${bk || ''}${over ? `<span class="ov">＋${over}足りない</span>` : ''}</td><td class="r f">${hhmm(x.m - 15)}</td></tr>`;
   });
   const wd = '日月火水木金土'[new Date(norm.date + 'T00:00:00').getDay()];
   const [, mo, da] = norm.date.split('-').map(Number);
@@ -376,6 +382,9 @@ td.n{color:#1d7a3a;font-weight:bold}
 .bigt td.b{font-size:24px;color:#8a1c00}
 .bigt .bw{width:28%}
 .bigt .hb{height:16px}
+.bigt td.k{font-size:22px;font-weight:bold;color:#0b4f8a;text-align:center}
+.bigt td.f{font-size:20px;font-weight:bold;text-align:center}
+.bigt .ov{display:block;font-size:12px;color:#c00}
 .cols>.c3{flex:1}
 .note{font-size:10px;color:#666;margin-top:2px}
 .p3t td,.p3t th{padding:1px 5px;font-size:11px;white-space:nowrap}
@@ -401,8 +410,8 @@ ${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).s
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
-<table class="bigt"><tr><th>来店</th><th>組</th><th>人数</th><th>カウンター</th><th>テーブル</th><th>店内</th><th class="bw"></th></tr>${hourRows}</table>
-<div class="note">人数＝その30分に来る人数／店内＝その時刻に店にいる人数</div>
+<table class="bigt"><tr><th>来店</th><th>組</th><th>人数</th><th>円卓の釜<br>（16まで）</th><th>後ろの釜<br>（20まで）</th><th>点火</th></tr>${hourRows}</table>
+<div class="note">人数＝その30分に来る人数＝炊く個数／円卓に16個まで、余りを後ろ（11:00だけ後ろに20個まで、余りを円卓）／点火は来店の15分前</div>
 </div><div class="c3">
 <h2>要望・メモのある予約（${reqs.length}組）</h2>
 ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人数</th><th>席</th><th>内容</th></tr>${reqRows}</table>` : '<div class="meta">ありません</div>'}
