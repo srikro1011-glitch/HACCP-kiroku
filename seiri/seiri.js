@@ -392,12 +392,12 @@ td.b{font-weight:bold}
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
 <div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
-${chart(cGrid, cHtml, cSeats.length, 'pc', arrRow(live.filter(b => seatsNow(b).some(n => cSeats.includes(n)))) + reqBox(reqC), phOf(reqC))}
+${chart(cGrid, cHtml, cSeats.length, 'pc', arrRow(live.filter(b => seatsNow(b).some(n => cSeats.includes(n)))))}
 <div class="pg"></div>
 <h1>② テーブル・個室　${mo}月${da}日（${wd}）</h1>
 <div class="meta">${arrange ? (toT.size ? 'カウンターの予約から' + toT.size + '組を空いているテーブルへ移しました（T16はあけています）／' : '') + (tMoved ? '2名テーブルの団体は T1〜T4・T5〜T8 の中にまとめ直し済み（' + tMoved + '組）／' : '') + '食べログ側の席は書き換えていません' : '食べログのままの席です'}</div>${tOk ? '' : '<div class="ng">※ 2名テーブルの団体を T1〜T4・T5〜T8 にまとめきれなかったので、食べログの席のままです。</div>'}
 <div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
-${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).some(n => tSeats.includes(n)))) + reqBox(reqT), phOf(reqT))}
+${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).some(n => tSeats.includes(n)))))}
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
