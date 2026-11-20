@@ -293,7 +293,7 @@ function seiriBuild(norm) {
     if (x.m === 11 * 60) { bk = Math.min(x.p, BACK); fr = Math.min(x.p - bk, FRONT); }
     else { fr = Math.min(x.p, FRONT); bk = Math.min(x.p - fr, BACK); }
     const over = x.p - fr - bk;
-    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.p}</td><td class="r k">${fr || ''}</td><td class="r k">${bk || ''}${over ? `<span class="ov">残り${over}は追加で炊く</span>` : ''}</td><td class="r f">${hhmm(x.m - 15)}</td><td class="ck"><span>○米</span><span>○水 <small>${hhmm(x.m - 25)}</small></span><span>○炊飯</span></td></tr>`;
+    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.p}</td><td class="r k">${fr || ''}</td><td class="r k">${bk || ''}${over ? `<span class="ov">残り${over}は追加で炊く</span>` : ''}</td><td class="r f">${hhmm(x.m - 15)}</td><td class="memo"></td></tr>`;
   });
   const wd = '日月火水木金土'[new Date(norm.date + 'T00:00:00').getDay()];
   const [, mo, da] = norm.date.split('-').map(Number);
@@ -388,9 +388,7 @@ td.n{color:#1d7a3a;font-weight:bold}
 .bigt td.k{font-size:22px;font-weight:bold;color:#0b4f8a;text-align:center}
 .bigt td.f{font-size:20px;font-weight:bold;text-align:center}
 .bigt .ov{display:block;font-size:11px;color:#666;font-weight:normal}
-.bigt td.ck{text-align:left;font-size:15px;white-space:nowrap}
-.bigt td.ck span{display:inline-block;margin-right:12px}
-.bigt td.ck small{font-size:12px;color:#555}
+.bigt .memo{width:40%}
 .flow{font-size:13px;border:2px solid #0b4f8a;border-radius:4px;padding:3px 8px;margin:0 0 4px;background:#f2f7fc}
 .cols>.c3{flex:1}
 .note{font-size:10px;color:#666;margin-top:2px}
@@ -417,7 +415,7 @@ ${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).s
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
-<div class="flow">①点火したらすぐ、次の時間の釜を数だけ用意 → 米をすり切り1杯入れて置く（冷蔵庫の島ごとに時間を分ける）　②点火10分前に水225cc → 蓋をして炊飯台へ　③時間が来たら厨房に声をかけて点火</div><table class="bigt"><tr><th>来店</th><th>組</th><th>人数</th><th>円卓の釜<br>（16まで）</th><th>後ろの釜<br>（20まで）</th><th>点火</th><th>チェック（済んだら○を塗る）</th></tr>${hourRows}</table>
+<div class="flow">①点火したらすぐ、次の時間の釜を数だけ用意 → 米をすり切り1杯入れて置く（冷蔵庫の島ごとに時間を分ける）　②点火10分前に水225cc → 蓋をして炊飯台へ　③時間が来たら厨房に声をかけて点火</div><table class="bigt"><tr><th>来店</th><th>組</th><th>人数</th><th>円卓の釜<br>（16まで）</th><th>後ろの釜<br>（20まで）</th><th>点火</th><th class="memo">メモ（正の字・追加・気づいたこと）</th></tr>${hourRows}</table>
 <div class="note">人数＝その30分に来る人数＝炊く個数／円卓に16個まで、余りを後ろ（11:00だけ後ろに20個まで、余りを円卓）／点火は来店の15分前</div>
 </div><div class="c3">
 <h2>要望・メモのある予約（${reqs.length}組）</h2>
