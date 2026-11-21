@@ -204,7 +204,7 @@ function seiriBuild(norm) {
   function box(b, top, h, cls, sub) {
     const r0 = top / RH, rn = h / RH;
     cls = cls === 'warn' ? 'warn' : (b.n <= 1 ? 'p1' : b.n === 2 ? 'p2' : 'p3');
-    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-id="${b.id}" data-k="${esc(b.from + '|' + b.name + '|' + b.n)}" data-q="${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}" data-a="${toM(b.from)}" data-b="${toM(b.to)}" data-t="${esc(b.from + '〜' + b.to)}" data-r="${r0}" data-s="${rn}" data-p="${b.n}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
+    return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-id="${b.id}" data-k="${esc(b.from + '|' + b.name + '|' + b.n)}" data-q="${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}" data-a="${toM(b.from)}" data-b="${toM(b.to)}" data-t="${esc(b.from + '〜' + b.to)}" data-r="${r0}" data-s="${rn}" data-p="${b.n}" data-fn="${esc(b.name.replace(/\s+/g, ' ').trim())}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
       <span class="nm">${esc(b.name.split(' ')[0])}</span><span class="pp">${b.n}名</span>${b.req ? '<span class="rq">★</span>' : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</div>`;
   }
   function arrRow(list) { // 30分ごと・1時間ごとの来店人数と合計（時間の下にそろえる）
@@ -272,7 +272,7 @@ function seiriBuild(norm) {
   const nowSeat = {}; placed.forEach(p => { nowSeat[p.b.from + p.b.name] = p.now; }); tNow.forEach((v, b) => { nowSeat[b.from + b.name] = v; });
   const reqs = live.filter(b => b.req || b.memo).sort((a, b) => toM(a.from) - toM(b.from));
   const moveRows = moves.map(p => `<tr><td>${esc(p.b.from)}</td><td>${esc(p.b.name.split(' ')[0])} 様</td><td>${p.b.n}名</td><td class="o">${esc(p.b.seats.join('・'))}</td><td>→</td><td class="n">${esc(p.now.join('・'))}</td></tr>`).join('');
-  const reqRows = reqs.map(b => `<tr><td>${esc(b.from)}</td><td>${esc(b.name.split(' ')[0])} 様</td><td>${b.n}名</td><td>${esc((nowSeat[b.from + b.name] || b.seats).join('・'))}</td><td>${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}</td></tr>`).join('');
+  const reqRows = reqs.map(b => `<tr><td>${esc(b.from)}</td><td>${esc(b.name.replace(/\s+/g, ' ').trim())} 様</td><td>${b.n}名</td><td>${esc((nowSeat[b.from + b.name] || b.seats).join('・'))}</td><td>${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}</td></tr>`).join('');
   // 時間別の来店人数（30分ごと）
   const isC = b => seatsNow(b).some(n => cSeats.includes(n));
   const reqC = reqs.filter(b => seatsNow(b).some(n => cSeats.includes(n))), reqT = reqs.filter(b => seatsNow(b).some(n => tSeats.includes(n)));
@@ -500,7 +500,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     var u=document.getElementById('undoBtn');if(u)u.style.display='none';fixUi();rearm();alert('この席で確定しました。閉じて開き直しても、この並びで出ます（このiPadだけ）。');};
   document.getElementById('unfixBtn').onclick=function(){if(!confirm('確定をやめて、席を最初から組み直しますか？'))return;fixSet(null);if(window.__seiriGo)window.__seiriGo(DATE);else location.reload();};
   function openMenu(bx){var id=bx.getAttribute('data-id'),k=bx.getAttribute('data-k'),came=arrList().indexOf(k)>=0;
-    var nm=(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'',q=bx.getAttribute('data-q')||'';
+    var nm=bx.getAttribute('data-fn')||(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'',q=bx.getAttribute('data-q')||'';
     var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
     var sp=document.createElement('div');sp.id='sp';sp.dataset.t=Date.now();
     var e=function(x){return String(x).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});};
@@ -523,7 +523,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   function timeSet(id,k,a,e,gone){var o=tmGet();o[k]=[a,e,gone?1:0];tmSave(o);
     boxesOf(id).forEach(function(b){setBoxTime(b,a,e);b.classList.toggle('gone',!!gone);b.classList.add('tm');});overlaps();}
   function openTime(bx){var id=bx.getAttribute('data-id'),k=bx.getAttribute('data-k'),a=+bx.getAttribute('data-a'),e=+bx.getAttribute('data-b');
-    var nm=(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,t0=bx.getAttribute('data-t0')||bx.getAttribute('data-t');
+    var nm=bx.getAttribute('data-fn')||(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,t0=bx.getAttribute('data-t0')||bx.getAttribute('data-t');
     var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
     var sp=document.createElement('div');sp.id='sp';sp.dataset.t=Date.now();
     function opts(lo,hi,v){var h='';for(var m=lo;m<=hi;m+=15)h+='<option value="'+m+'"'+(m===v?' selected':'')+'>'+hm(m)+'</option>';if((v-lo)%15)h+='<option value="'+v+'" selected>'+hm(v)+'</option>';return h;}
@@ -547,7 +547,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
       var runs=[];idx.forEach(function(i){var l=runs[runs.length-1];if(l&&l[0]+l[1]===i)l[1]++;else runs.push([i,1]);});
       runs.forEach(function(rn){var b=tpl.cloneNode(true);b.classList.remove('held','drag','ov');place(b,pl,rn[0],rn[1]);b.querySelector('.sub').textContent=seats.length>1?seats.join('+'):'';b.classList.add('ed');});});}
   function openPanel(bx){var id=bx.getAttribute('data-id'),cur0=seatsOf(id),sel=cur0.slice(),bz=busyMap(bx);
-    var nm=(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'';
+    var nm=bx.getAttribute('data-fn')||(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'';
     var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
     var sp=document.createElement('div');sp.id='sp';
     sp.dataset.t=Date.now();var html='<div class="cd"><h3>'+nm+' 様　'+p+'名　'+tt+'</h3><p class="sm">座る席をタップして選んでください（いくつでも選べます）。もう一度タップで外れます。点線の席は同じ時間に別の予約があります。</p>';
