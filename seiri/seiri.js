@@ -284,16 +284,17 @@ function seiriBuild(norm) {
     const arr = live.filter(b => toM(b.from) >= m && toM(b.from) < m + 30);
     const inn = live.filter(b => toM(b.from) <= m && m < toM(b.to));
     const sl = { m, g: arr.length, p: arr.reduce((a, b) => a + b.n, 0), pc: arr.filter(isC).reduce((a, b) => a + b.n, 0), in: inn.reduce((a, b) => a + b.n, 0) };
+    sl.k = arr.reduce((a, b) => a + Math.min(b.kids || 0, b.n), 0); sl.ad = sl.p - sl.k; // ご飯は大人の人数で炊く（子どもは横に表示だけ）
     sl.pt = sl.p - sl.pc; mx = Math.max(mx, sl.p); slots.push(sl);
   }
   // 釜：前（円卓）16個まで・後ろ20個まで。ふだんは前から、11:00だけ後ろから。点火は来店の15分前
   const FRONT = 16, BACK = 20;
   slots.filter(x => x.p).forEach(x => {
     let fr, bk;
-    if (x.m === 11 * 60) { bk = Math.min(x.p, BACK); fr = Math.min(x.p - bk, FRONT); }
-    else { fr = Math.min(x.p, FRONT); bk = Math.min(x.p - fr, BACK); }
-    const over = x.p - fr - bk;
-    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.p}</td><td class="r k">${fr || ''}</td><td class="r k">${bk || ''}${over ? `<span class="ov">残り${over}は追加で炊く</span>` : ''}</td><td class="r f">${hhmm(x.m - 15)}</td><td class="memo"></td></tr>`;
+    if (x.m === 11 * 60) { bk = Math.min(x.ad, BACK); fr = Math.min(x.ad - bk, FRONT); }
+    else { fr = Math.min(x.ad, FRONT); bk = Math.min(x.ad - fr, BACK); }
+    const over = x.ad - fr - bk;
+    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.ad}${x.k ? `<small class="kid">子${x.k}</small>` : ''}</td><td class="r k">${fr || ''}</td><td class="r k">${bk || ''}${over ? `<span class="ov">残り${over}は追加で炊く</span>` : ''}</td><td class="r f">${hhmm(x.m - 15)}</td><td class="memo"></td></tr>`;
   });
   const wd = '日月火水木金土'[new Date(norm.date + 'T00:00:00').getDay()];
   const [, mo, da] = norm.date.split('-').map(Number);
@@ -389,6 +390,7 @@ td.n{color:#1d7a3a;font-weight:bold}
 .bigt td.f{font-size:20px;font-weight:bold;text-align:center}
 .bigt .ov{display:block;font-size:11px;color:#666;font-weight:normal}
 .bigt .memo{width:40%}
+.bigt small.kid{font-size:12px;color:#666;font-weight:normal;margin-left:4px}
 .flow{font-size:13px;border:2px solid #0b4f8a;border-radius:4px;padding:3px 8px;margin:0 0 4px;background:#f2f7fc}
 .cols>.c3{flex:1}
 .note{font-size:10px;color:#666;margin-top:2px}
@@ -415,8 +417,8 @@ ${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).s
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
 <div class="cols"><div class="c1">
-<div class="flow">①点火したらすぐ、次の時間の釜を数だけ用意 → 米をすり切り1杯入れて置く（冷蔵庫の島ごとに時間を分ける）　②点火10分前に水225cc → 蓋をして炊飯台へ　③時間が来たら厨房に声をかけて点火</div><table class="bigt"><tr><th>来店</th><th>組</th><th>人数</th><th>円卓の釜<br>（16まで）</th><th>後ろの釜<br>（20まで）</th><th>点火</th><th class="memo">メモ（正の字・追加・気づいたこと）</th></tr>${hourRows}</table>
-<div class="note">人数＝その30分に来る人数＝炊く個数／円卓に16個まで、余りを後ろ（11:00だけ後ろに20個まで、余りを円卓）／点火は来店の15分前</div>
+<div class="flow">①点火したらすぐ、次の時間の釜を数だけ用意 → 米をすり切り1杯入れて置く（冷蔵庫の島ごとに時間を分ける）　②点火10分前に水225cc → 蓋をして炊飯台へ　③時間が来たら厨房に声をかけて点火</div><table class="bigt"><tr><th>来店</th><th>組</th><th>大人</th><th>円卓の釜<br>（16まで）</th><th>後ろの釜<br>（20まで）</th><th>点火</th><th class="memo">メモ（正の字・追加・気づいたこと）</th></tr>${hourRows}</table>
+<div class="note">大人＝その30分に来る大人の人数＝炊く個数（子どもは「子2」のように横に出すだけで、炊く数には入れません）／円卓に16個まで、余りを後ろ（11:00だけ後ろに20個まで、余りを円卓）／点火は来店の15分前</div>
 </div><div class="c3">
 <h2>要望・メモのある予約（${reqs.length}組）</h2>
 ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人数</th><th>席</th><th>内容</th></tr>${reqRows}</table>` : '<div class="meta">ありません</div>'}
@@ -593,7 +595,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
 }
 
 (async () => {
-  const Q = `query SeatSelection($date: Date!) { seats { id name displayOrder seatType { name } onlineBookingBlockings(date: $date) { id } } calendarDate(date: $date) { officeHour { dinnerTimeFrom dinnerTimeTo lunchTimeFrom lunchTimeTo } } bookings(visitDate: $date) { edges { node { id bookingStatus timeFrom timeTo numberOfPeople lastNameKana firstNameKana lastName firstName seats { name } requestsAndComments memo } } } }`;
+  const Q = `query SeatSelection($date: Date!) { seats { id name displayOrder seatType { name } onlineBookingBlockings(date: $date) { id } } calendarDate(date: $date) { officeHour { dinnerTimeFrom dinnerTimeTo lunchTimeFrom lunchTimeTo } } bookings(visitDate: $date) { edges { node { id bookingStatus timeFrom timeTo numberOfPeople numberOfChildren lastNameKana firstNameKana lastName firstName seats { name } requestsAndComments memo } } } }`;
   if (location.host !== 'owner.tabelog.com') { alert('食べログノート（owner.tabelog.com）を開いてから押してください'); return; }
   const m = location.pathname.match(/(\d{4}-\d{2}-\d{2})/);
   const jst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
@@ -669,7 +671,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
       reloadJs: "clearTimeout(window.__seiriTimer);location.href='/tn/time-schedule/" + date + "?r='+Date.now()",
       autoNote: '5分ごとに自動で更新',
       seats: d.seats.slice().sort((x, y) => x.displayOrder - y.displayOrder).map(s => ({ name: s.name, type: s.seatType.name, blocked: (s.onlineBookingBlockings || []).length > 0 })),
-      bookings: d.bookings.edges.map(e => e.node).map(n => ({ from: n.timeFrom, to: n.timeTo, name: (n.lastNameKana || n.lastName || '') + ' ' + (n.firstNameKana || n.firstName || ''), n: n.numberOfPeople, seats: n.seats.map(s => s.name), status: n.bookingStatus, req: n.requestsAndComments, memo: n.memo }))
+      bookings: d.bookings.edges.map(e => e.node).map(n => ({ from: n.timeFrom, to: n.timeTo, name: (n.lastNameKana || n.lastName || '') + ' ' + (n.firstNameKana || n.firstName || ''), n: n.numberOfPeople, kids: n.numberOfChildren || 0, seats: n.seats.map(s => s.name), status: n.bookingStatus, req: n.requestsAndComments, memo: n.memo }))
     };
     const html = seiriBuild(norm);
     w.document.open(); w.document.write(html); w.document.close();
