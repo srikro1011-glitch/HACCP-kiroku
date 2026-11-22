@@ -201,9 +201,13 @@ function seiriBuild(norm) {
     const stripes = rows.map((r, i) => `<div class="row${i % 2 ? ' odd' : ''}" style="top:${pr(i)};height:${pr(1)}"><div class="lab">${esc(r)}</div><div class="lab r">${esc(r)}</div></div>`).join('');
     return { head: stripes, lines, rows };
   }
+  // 来店時刻が同じで名字も同じ組は黄色にする（受付の取り違え防止）
+  const sameCnt = {}; live.forEach(b => { const k = b.from + '|' + b.name.split(' ')[0]; sameCnt[k] = (sameCnt[k] || 0) + 1; });
+  const isSame = b => sameCnt[b.from + '|' + b.name.split(' ')[0]] > 1;
   function box(b, top, h, cls, sub) {
     const r0 = top / RH, rn = h / RH;
     cls = cls === 'warn' ? 'warn' : (b.n <= 1 ? 'p1' : b.n === 2 ? 'p2' : 'p3');
+    if (isSame(b)) cls += ' same';
     return `<div class="bx ${cls}${rn > 1 ? ' tall' : ''}" data-id="${b.id}" data-k="${esc(b.from + '|' + b.name + '|' + b.n)}" data-q="${esc((b.req || '') + (b.memo ? ' ／メモ: ' + b.memo : ''))}" data-a="${toM(b.from)}" data-b="${toM(b.to)}" data-t="${esc(b.from + '〜' + b.to)}" data-r="${r0}" data-s="${rn}" data-p="${b.n}" data-fn="${esc(b.name.replace(/\s+/g, ' ').trim())}" style="left:calc(${pc(toM(b.from))} + 1px);top:calc(${pr(r0)} + 2px);width:calc(${pc(t0 + toM(b.to) - toM(b.from))} - 3px);height:calc(${pr(rn)} - 4px)">
       <span class="nm">${esc(b.name.split(' ')[0])}</span><span class="pp">${b.n}名</span>${b.req ? '<span class="rq">★</span>' : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</div>`;
   }
@@ -362,6 +366,7 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .bx.p2{background:#1e7a3c;border:2px solid #0f4d24;color:#fff}
 .bx.p3{background:#5b3a9e;border:2px solid #3a2368;color:#fff}
 .bx.warn{background:#c62828;border:2px solid #7f1414;color:#fff}
+.bx.same{background:#ffe100;border:2px solid #b38f00;color:#000}.bx.same .pp,.bx.same .sub{color:#000}.bx.same .rq{color:#c00000}
 .nm{font-weight:bold;font-size:1.1em}
 .pp{color:inherit}
 .bx .pp,.bx .sub{color:#fff;opacity:.9}
@@ -407,12 +412,12 @@ td.b{font-weight:bold}
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
-<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
+<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり<span style="background:#ffe100;border:1px solid #b38f00"></span>同じ時刻に同じ名字</div>
 ${chart(cGrid, cHtml, cSeats.length, 'pc', arrRow(live.filter(b => seatsNow(b).some(n => cSeats.includes(n)))))}
 <div class="pg"></div>
 <h1>② テーブル・個室　${mo}月${da}日（${wd}）</h1>
 <div class="meta">${arrange ? (toT.size ? 'カウンターの予約から' + toT.size + '組を空いているテーブルへ移しました（T16はあけています）／' : '') + (tMoved ? '2名テーブルの団体は T1〜T4・T5〜T8 の中にまとめ直し済み（' + tMoved + '組）／' : '') + '食べログ側の席は書き換えていません' : '食べログのままの席です'}</div>${tOk ? '' : '<div class="ng">※ 2名テーブルの団体を T1〜T4・T5〜T8 にまとめきれなかったので、食べログの席のままです。</div>'}
-<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり</div>
+<div class="legend"><span style="background:#1f5fbf"></span>1名<span style="background:#1e7a3c"></span>2名<span style="background:#5b3a9e"></span>3名以上<span style="background:none;color:#d4a000">★</span>要望あり<span style="background:#ffe100;border:1px solid #b38f00"></span>同じ時刻に同じ名字</div>
 ${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).some(n => tSeats.includes(n)))))}
 <div class="pg"></div>
 <h1 class="big1">③ 時間別の来店人数　${mo}月${da}日（${wd}）　${live.length}組 ${people}名</h1>
