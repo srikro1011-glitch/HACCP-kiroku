@@ -293,7 +293,7 @@ function seiriBuild(norm) {
   }
   // 釜：前（円卓）16個まで・後ろ20個まで。ふだんは前から、11:00だけ後ろから。点火は来店の15分前
   slots.filter(x => x.p).forEach(x => {
-    hourRows += `<tr><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.ad}</td><td class="r kc">${x.k || ''}</td><td class="r tot">${x.p}</td><td class="memo"></td></tr>`;
+    hourRows += `<tr data-m="${x.m}"><td>${hhmm(x.m)}</td><td class="r">${x.g || ''}</td><td class="r b">${x.ad}</td><td class="r kc">${x.k || ''}</td><td class="r tot">${x.p}</td><td class="memo"></td></tr>`;
   });
   const wd = '日月火水木金土'[new Date(norm.date + 'T00:00:00').getDay()];
   const [, mo, da] = norm.date.split('-').map(Number);
@@ -407,6 +407,27 @@ td.b{font-weight:bold}
 .ng{color:#d33;font-weight:bold}
 @media print{.bar,#tray{display:none!important}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:var(--ph,118mm)!important}.rqb td{font-size:11px;padding:0 4px}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}
 .bigt td.tot{font-size:21px;font-weight:bold;color:#000}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
+#alerts{position:sticky;top:0;z-index:60;background:#1f1d1a;color:#fff;margin:-14px -14px 8px;padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:15px}
+#alerts:empty{display:none}
+#alerts .clk{font-size:20px;margin-right:2px}
+#alerts .lb{font-size:12px;font-weight:bold;padding:2px 8px;border-radius:99px;color:#fff}
+#alerts .lb.so{background:#ff8c00;color:#000}#alerts .lb.la{background:#e53935}#alerts .lb.fr{background:#2e7d32}
+#alerts .ch{font-size:15px;font-weight:bold;padding:6px 10px;border-radius:8px;border:2px solid;background:#fff;cursor:pointer}
+#alerts .ch.so{border-color:#ff8c00;color:#8a4b00}#alerts .ch.la{border-color:#e53935;color:#b71c1c}
+#alerts .fs{font-size:14px;background:#2b3a2d;border-radius:6px;padding:3px 8px}#alerts .tg{font-size:14px;font-weight:bold;padding:5px 10px;border-radius:8px;border:1px solid #fff;background:transparent;color:#fff;cursor:pointer}
+#alerts .nw{background:#fff8d6;color:#5a3d00;border-radius:8px;padding:4px 2px 4px 10px;font-size:14px;display:inline-flex;gap:4px;align-items:center}#alerts .nw.del{background:#ffe3e3;color:#8a0000}
+#alerts .nx{border:0;background:transparent;font-size:20px;line-height:1;cursor:pointer;color:inherit;padding:2px 8px}
+#alerts .rt{margin-left:auto;display:flex;gap:6px}
+#alerts .rt button{font-size:14px;padding:6px 12px;border-radius:6px;border:1px solid #fff;background:transparent;color:#fff;font-weight:bold;cursor:pointer}
+#alerts .rt button:disabled{opacity:.35;cursor:default}
+@keyframes blinkSo{50%{box-shadow:0 0 0 5px #ff8c00}}@keyframes blinkLa{50%{box-shadow:0 0 0 5px #e53935}}
+.bx.soon{box-shadow:0 0 0 2px #ff8c00;animation:blinkSo 1.2s infinite;z-index:4}
+.bx.late{box-shadow:0 0 0 2px #e53935;animation:blinkLa 1.2s infinite;z-index:4}
+@media (prefers-reduced-motion:reduce){.bx.soon{animation:none;box-shadow:0 0 0 4px #ff8c00}.bx.late{animation:none;box-shadow:0 0 0 4px #e53935}}
+.nowl{position:absolute;top:0;bottom:0;width:0;border-left:2px solid #e53935;z-index:6;pointer-events:none}
+.bigt tr.nowr td{background:#ffe9a8}.bigt tr.nextr td{background:#fff6d9}
+.bigt tr.nowr td:first-child::after{content:' いま';font-size:12px;color:#c62828}.bigt tr.nextr td:first-child::after{content:' 次';font-size:12px;color:#8a6d00}
+@media print{#alerts,.nowl{display:none!important}.bx.soon,.bx.late{animation:none;box-shadow:none}.bigt tr.nowr td,.bigt tr.nextr td{background:none}.bigt tr.nowr td:first-child::after,.bigt tr.nextr td:first-child::after{content:none}}
 </style></head><body>
 <div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button id="fixBtn" style="background:#c62828">この席で確定</button><button class="sec" id="unfixBtn" style="display:none">確定をやめて組み直す</button><span id="fixNote" style="font-weight:bold;color:#c62828"></span><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らす、「お帰りになりました」「時間を変える」「キャンセル」もここからできます。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
@@ -510,23 +531,24 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     var sp=document.createElement('div');sp.id='sp';sp.dataset.t=Date.now();
     var e=function(x){return String(x).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});};
     sp.innerHTML='<div class="cd mn"><h3>'+e(nm)+' 様　'+p+'名　'+e(tt)+'</h3><p class="sm">席: '+e(seatsOf(id).join('+'))+(came?'　<b style="color:#1e7a3c">来店済み</b>':'')+'</p>'+(tel?'<a class="tel" href="tel:'+e(tel.replace(/[^0-9+]/g,''))+'">📞 '+e(tel)+'（押すと電話）</a>':'<p class="sm">電話番号: 登録なし</p>')+(q?'<p class="sm" style="color:#c45a00">要望: '+e(q)+'</p>':'')
-      +'<div class="mb"><button class="arr1 '+(came?'':'ok')+'">'+(came?'来店を取り消す':'ご来店しました')+'</button><button class="gone1">お帰りになりました（今の時刻で枠を終わらせる）</button><button class="tm1">時間を変える（来店・お帰りの時刻）</button>'+(tmGet()[k]?'<button class="tm0">予約どおりの時間に戻す</button>':'')+'<button class="seat">席を変える・席を減らす／足す</button><button class="park1">一時置きにする（いったんよけて、あとで席を選ぶ）</button><button class="cx1" style="color:#c00000;border-color:#c00000">'+(cxList().indexOf(k)>=0?'キャンセルを取り消す':'キャンセルにする（来なかった・時間切れ）')+'</button><button class="cx">閉じる</button></div></div>';
+      +'<div class="mb"><button class="arr1 '+(came?'':'ok')+'">'+(came?'来店を取り消す':'ご来店しました')+'</button><button class="gone1">お帰りになりました（今の時刻で枠を終わらせる）</button>'+(isToday()?'<button class="ext1">お帰りを15分のばす</button>':'')+'<button class="tm1">時間を変える（来店・お帰りの時刻）</button>'+(tmGet()[k]?'<button class="tm0">予約どおりの時間に戻す</button>':'')+'<button class="seat">席を変える・席を減らす／足す</button><button class="park1">一時置きにする（いったんよけて、あとで席を選ぶ）</button><button class="cx1" style="color:#c00000;border-color:#c00000">'+(cxList().indexOf(k)>=0?'キャンセルを取り消す':'キャンセルにする（来なかった・時間切れ）')+'</button><button class="cx">閉じる</button></div></div>';
     document.body.appendChild(sp);
     sp.addEventListener('click',function(ev){var t=ev.target.closest('button');if(ev.target===sp&&Date.now()-sp.dataset.t<600)return;
       if(ev.target===sp||(t&&t.classList.contains('cx'))){sp.parentNode.removeChild(sp);return;}if(!t)return;
-      if(t.classList.contains('arr1')){var a=arrList(),i=a.indexOf(k);if(i>=0)a.splice(i,1);else a.push(k);arrSave(a);arrPaint();sp.parentNode.removeChild(sp);return;}
+      if(t.classList.contains('arr1')){snap();var a=arrList(),i=a.indexOf(k);if(i>=0)a.splice(i,1);else a.push(k);arrSave(a);arrPaint();sp.parentNode.removeChild(sp);return;}
       if(t.classList.contains('seat')){sp.parentNode.removeChild(sp);openPanel(bx);return;}
       if(t.classList.contains('gone1')){var d=new Date(Date.now()+9*3600e3),nw=d.getUTCHours()*60+d.getUTCMinutes();nw=Math.ceil(nw/5)*5;
         var a=+bx.getAttribute('data-a');if(nw<=a){alert('まだ来店時刻（'+hm(a)+'）より前です。時刻を選ぶときは「時間を変える」を使ってください。');return;}
         sp.parentNode.removeChild(sp);timeSet(id,k,a,nw,1);return;}
       if(t.classList.contains('tm1')){sp.parentNode.removeChild(sp);openTime(bx);return;}
+      if(t.classList.contains('ext1')){var a2=+bx.getAttribute('data-a'),e2=Math.min(T1,+bx.getAttribute('data-b')+15);if(!clashOk(clashes(id,seatsOf(id),a2,e2)))return;sp.parentNode.removeChild(sp);timeSet(id,k,a2,e2,0);return;}
       if(t.classList.contains('park1')){sp.parentNode.removeChild(sp);parkSet(id,true);return;}
       if(t.classList.contains('cx1')){var c=cxList(),j=c.indexOf(k);
         if(j<0){if(!confirm(nm+' 様（'+tt+'）をキャンセルにしますか？\\n赤い枠で残り、この席は空いている扱いになります。食べログの予約は変わりません。'))return;c.push(k);}else c.splice(j,1);
-        cxSave(c);cxPaint();sp.parentNode.removeChild(sp);overlaps();return;}
-      if(t.classList.contains('tm0')){var o=tmGet();delete o[k];tmSave(o);boxesOf(id).forEach(function(b){setBoxTime(b,+b.getAttribute('data-a0'),+b.getAttribute('data-b0'));b.classList.remove('gone','tm');});
+        snap();cxSave(c);cxPaint();sp.parentNode.removeChild(sp);overlaps();return;}
+      if(t.classList.contains('tm0')){snap();var o=tmGet();delete o[k];tmSave(o);boxesOf(id).forEach(function(b){setBoxTime(b,+b.getAttribute('data-a0'),+b.getAttribute('data-b0'));b.classList.remove('gone','tm');});
         sp.parentNode.removeChild(sp);overlaps();return;}});}
-  function timeSet(id,k,a,e,gone){var o=tmGet();o[k]=[a,e,gone?1:0];tmSave(o);
+  function timeSet(id,k,a,e,gone){snap();var o=tmGet();o[k]=[a,e,gone?1:0];tmSave(o);
     boxesOf(id).forEach(function(b){setBoxTime(b,a,e);b.classList.toggle('gone',!!gone);b.classList.add('tm');});overlaps();}
   function openTime(bx){var id=bx.getAttribute('data-id'),k=bx.getAttribute('data-k'),a=+bx.getAttribute('data-a'),e=+bx.getAttribute('data-b');
     var nm=bx.getAttribute('data-fn')||(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,t0=bx.getAttribute('data-t0')||bx.getAttribute('data-t');
@@ -564,7 +586,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     sp.addEventListener('click',function(ev){var t=ev.target.closest('button');if(ev.target===sp&&Date.now()-sp.dataset.t<600)return;if(ev.target===sp||(t&&t.classList.contains('cx'))){sp.parentNode.removeChild(sp);return;}if(!t)return;
       if(t.classList.contains('pk')){sp.parentNode.removeChild(sp);openMenu(list[+t.getAttribute('data-i')]);}});}
   // 一時置き: 枠を表からよけて、画面下の「一時置き」に並べる。タップで席を選んで戻す
-  function parkSet(id,on){boxesOf(id).forEach(function(b){b.classList.toggle('park',on);});if(on)edited();overlaps();trayPaint();}
+  function parkSet(id,on){snap();boxesOf(id).forEach(function(b){b.classList.toggle('park',on);});if(on)edited();overlaps();trayPaint();}
   function trayPaint(){var tr=document.getElementById('tray');if(!tr){tr=document.createElement('div');tr.id='tray';document.body.appendChild(tr);
       tr.addEventListener('click',function(ev){var c=ev.target.closest('.chip');if(!c)return;var b=boxesOf(c.getAttribute('data-id'))[0];if(b)openPanel(b);});}
     var seen=[],h='';document.querySelectorAll('.plot .bx.park').forEach(function(b){var i=b.getAttribute('data-id');if(seen.indexOf(i)>=0)return;seen.push(i);
@@ -587,7 +609,80 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
       if(t.classList.contains('st')){var n=t.getAttribute('data-n'),i=sel.indexOf(n);if(i>=0)sel.splice(i,1);else sel.push(n);paint();return;}
       if(t.classList.contains('ok')){if(!sel.length){alert('席を1つ以上えらんでください');return;}
         var all=[];groups.forEach(function(g){g.rows.forEach(function(n){if(sel.indexOf(n)>=0)all.push(n);});});
-        if(all.slice().sort().join()===cur0.slice().sort().join()){sp.parentNode.removeChild(sp);return;}if(!clashOk(clashes(id,all,+bx.getAttribute('data-a'),+bx.getAttribute('data-b'))))return;sp.parentNode.removeChild(sp);render(id,all);edited();overlaps();arrPaint();trayPaint();}});}
+        if(all.slice().sort().join()===cur0.slice().sort().join()){sp.parentNode.removeChild(sp);return;}if(!clashOk(clashes(id,all,+bx.getAttribute('data-a'),+bx.getAttribute('data-b'))))return;sp.parentNode.removeChild(sp);snap();render(id,all);edited();overlaps();arrPaint();trayPaint();}});}
+  // ===== 営業中のお知らせ（退席10分前・未着・空く席・新しい予約）と1つ戻す =====
+  function jstNow(){var d=new Date(Date.now()+9*3600e3);return {ds:d.toISOString().slice(0,10),m:d.getUTCHours()*60+d.getUTCMinutes()};}
+  function nowM(){return window.__seiriNow!=null?window.__seiriNow:jstNow().m;}
+  function isToday(){return window.__seiriToday!=null?!!window.__seiriToday:jstNow().ds===DATE;}
+  function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){var m=window.__seiriLs||{};return k in m?m[k]:d;}}
+  function lsSet(k,v){window.__seiriLs=window.__seiriLs||{};window.__seiriLs[k]=v;try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc2(x){return String(x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function uniqBoxes(){var seen={},out=[];document.querySelectorAll('.plot .bx').forEach(function(b){var i=b.getAttribute('data-id');if(seen[i])return;seen[i]=1;out.push(b);});return out;}
+  function surname(b){return (b.querySelector('.nm')||{}).textContent||'';}
+  // 音（iPadは画面を1回さわってから鳴らせる）
+  var SKEY='seiri-sound';
+  function soundOn(){return lsGet(SKEY,1)!==0;}
+  document.addEventListener('pointerdown',function(){var C=window.AudioContext||window.webkitAudioContext;if(!C)return;try{if(!window.__seiriAC)window.__seiriAC=new C();if(window.__seiriAC.state==='suspended')window.__seiriAC.resume();}catch(e){}},true);
+  function beep(n){var A=window.__seiriAC;if(!A||!soundOn())return;try{for(var i=0;i<(n||2);i++){var o=A.createOscillator(),g=A.createGain(),t=A.currentTime+i*0.35;o.type='sine';o.frequency.value=880;o.connect(g);g.connect(A.destination);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.4,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.25);o.start(t);o.stop(t+0.3);}}catch(e){}}
+  var BKEY='seiri-beep-'+DATE,SEENKEY='seiri-seen-'+DATE,NEWSKEY='seiri-news-'+DATE;
+  // 新しい予約・キャンセル: 前に開いたとき（自動更新を含む）との差を出す
+  (function diff(){var now={};uniqBoxes().forEach(function(b){var k=b.getAttribute('data-k'),p=k.split('|');now[k]=p[0]+' '+String(p[1]||'').split(' ')[0]+' 様 '+(p[2]||'')+'名（'+seatsOf(b.getAttribute('data-id')).join('+')+'）';});
+    var prev=lsGet(SEENKEY,null),news=lsGet(NEWSKEY,[]),add=0;
+    if(prev){Object.keys(now).forEach(function(k){if(!prev[k]){news.push({t:'new',s:now[k],at:hm(nowM())});add++;}});Object.keys(prev).forEach(function(k){if(!now[k]){news.push({t:'del',s:prev[k],at:hm(nowM())});add++;}});}
+    lsSet(SEENKEY,now);lsSet(NEWSKEY,news.slice(-20));if(add)beep(1);})();
+  // 1つ戻す
+  var UNDO=[];
+  function snapNow(){var seats={},park=[];uniqBoxes().forEach(function(b){var id=b.getAttribute('data-id');seats[id]=seatsOf(id);if(b.classList.contains('park'))park.push(id);});
+    return {tm:JSON.parse(JSON.stringify(tmGet())),cx:cxList().slice(),arr:arrList().slice(),seats:seats,park:park};}
+  function snap(){UNDO.push(snapNow());if(UNDO.length>20)UNDO.shift();setTimeout(tick,30);}
+  function undo(){var s=UNDO.pop();if(!s)return;
+    Object.keys(s.seats).forEach(function(id){if(boxesOf(id).length&&seatsOf(id).slice().sort().join()!==s.seats[id].slice().sort().join())render(id,s.seats[id]);});
+    document.querySelectorAll('.plot .bx').forEach(function(b){b.classList.toggle('park',s.park.indexOf(b.getAttribute('data-id'))>=0);});
+    tmSave(s.tm);document.querySelectorAll('.plot .bx').forEach(function(b){if(b.hasAttribute('data-a0'))setBoxTime(b,+b.getAttribute('data-a0'),+b.getAttribute('data-b0'));b.classList.remove('gone','tm');});applyTimes();
+    cxSave(s.cx);cxPaint();arrSave(s.arr);arrPaint();overlaps();trayPaint();tick();}
+  // 20秒ごとに見直す
+  function tick(){var bar=document.getElementById('alerts');
+    if(!bar){bar=document.createElement('div');bar.id='alerts';document.body.insertBefore(bar,document.body.firstChild);bar.addEventListener('click',onBar);}
+    var today=isToday(),n=nowM(),soon=[],late=[],free=[],emptyNow=0,news=lsGet(NEWSKEY,[]);
+    document.querySelectorAll('.plot .bx.soon,.plot .bx.late').forEach(function(b){b.classList.remove('soon','late');});
+    document.querySelectorAll('.nowl').forEach(function(l){l.parentNode.removeChild(l);});
+    document.querySelectorAll('.bigt tr.nowr,.bigt tr.nextr').forEach(function(r){r.classList.remove('nowr','nextr');});
+    if(today){var arr=arrList(),cx=cxList(),beeped=lsGet(BKEY,[]),ring=false;
+      uniqBoxes().forEach(function(b){var k=b.getAttribute('data-k'),id=b.getAttribute('data-id');if(cx.indexOf(k)>=0||b.classList.contains('park')||b.classList.contains('gone'))return;
+        var a=+b.getAttribute('data-a'),e=+b.getAttribute('data-b'),came=arr.indexOf(k)>=0,key=null;
+        if(n>=e-10&&n<e+15){soon.push(b);boxesOf(id).forEach(function(x){x.classList.add('soon');});key='A|'+k+'|'+e;}
+        else if(!came&&n>=a+10&&n<e){late.push(b);boxesOf(id).forEach(function(x){x.classList.add('late');});key='B|'+k;}
+        if(key&&beeped.indexOf(key)<0){beeped.push(key);ring=true;}});
+      if(ring){lsSet(BKEY,beeped.slice(-300));beep(2);}
+      var occ={};document.querySelectorAll('.plot .bx').forEach(function(b){if(cx.indexOf(b.getAttribute('data-k'))>=0||b.classList.contains('park'))return;var a=+b.getAttribute('data-a'),e=+b.getAttribute('data-b');seatsOfBox(b).forEach(function(s){(occ[s]=occ[s]||[]).push([a,e]);});});
+      document.querySelectorAll('.plot').forEach(function(pl){rowsOf(pl).forEach(function(s){var L=occ[s]||[],c=L.filter(function(x){return x[0]<=n&&n<x[1];});
+        if(!c.length){emptyNow++;return;}var e=Math.max.apply(null,c.map(function(x){return x[1];}));
+        if(e<=n+30)free.push({s:s,e:e,nx:L.some(function(x){return x[0]>=e&&x[0]<e+30;})});});});
+      free.sort(function(x,y){return x.e-y.e;});
+      if(n>=T0&&n<=T1)document.querySelectorAll('.plot .trk').forEach(function(t){var l=document.createElement('div');l.className='nowl';l.style.left=pcx(n);t.appendChild(l);});
+      var rows=[].slice.call(document.querySelectorAll('.bigt tr[data-m]')),hit=-1;rows.forEach(function(r,i){var m=+r.getAttribute('data-m');if(m<=n&&n<m+30)hit=i;});
+      if(hit>=0){rows[hit].classList.add('nowr');if(rows[hit+1])rows[hit+1].classList.add('nextr');}
+      else{var nx=rows.filter(function(r){return +r.getAttribute('data-m')>n;})[0];if(nx)nx.classList.add('nextr');}}
+    if(!today&&!news.length&&!UNDO.length){bar.innerHTML='';return;}
+    var h='';
+    if(today){h+='<b class="clk">'+hm(n)+'</b>';
+      var OP=window.__seiriOpen=window.__seiriOpen||{};
+      function grp(key,cls,label,items,unit){if(!items.length)return '';var big=items.length>3,open=!big||OP[key];
+        return '<span class="lb '+cls+'">'+label+'</span>'+(big?'<button class="tg" data-g="'+key+'">'+items.length+unit+(open?' ▲':' ▼')+'</button>':'')+(open?items.join(''):'');}
+      h+=grp('so','so','退席10分前',soon.map(function(b){var e=+b.getAttribute('data-b');return '<button class="ch so" data-id="'+esc2(b.getAttribute('data-id'))+'">'+esc2(seatsOf(b.getAttribute('data-id')).join('+'))+' '+esc2(surname(b))+' 様 '+(e>n?'あと'+(e-n)+'分':(n===e?'時間です':(n-e)+'分すぎ'))+'</button>';}),'組');
+      h+=grp('la','la','未着',late.map(function(b){return '<button class="ch la" data-id="'+esc2(b.getAttribute('data-id'))+'">'+esc2(seatsOf(b.getAttribute('data-id')).join('+'))+' '+esc2(surname(b))+' 様 '+hm(+b.getAttribute('data-a'))+'</button>';}),'組');
+      var fr=free.filter(function(f){return !f.nx;});
+      h+='<span class="lb fr">いま空き '+emptyNow+'席</span>'+grp('fr','fr','30分以内に空く',fr.map(function(f){return '<span class="fs">'+esc2(f.s)+' '+hm(f.e)+'</span>';}),'席');}
+    news.forEach(function(x,i){h+='<span class="nw '+x.t+'">'+(x.t==='new'?'新しい予約':'食べログでキャンセル')+'（'+esc2(x.at)+'）：'+esc2(x.s)+'<button class="nx" data-i="'+i+'" aria-label="消す">×</button></span>';});
+    h+='<span class="rt"><button class="und"'+(UNDO.length?'':' disabled')+'>↩ 1つ戻す</button>'+(today?'<button class="snd">'+(soundOn()?'🔔 音あり':'🔕 音なし')+'</button>':'')+'</span>';
+    bar.innerHTML=h;}
+  function onBar(ev){var t=ev.target.closest('button');if(!t)return;
+    if(t.classList.contains('ch')){var b=boxesOf(t.getAttribute('data-id'))[0];if(b)openMenu(b);return;}
+    if(t.classList.contains('nx')){var a=lsGet(NEWSKEY,[]);a.splice(+t.getAttribute('data-i'),1);lsSet(NEWSKEY,a);tick();return;}
+    if(t.classList.contains('und')){undo();return;}
+    if(t.classList.contains('tg')){var g=t.getAttribute('data-g'),O=window.__seiriOpen=window.__seiriOpen||{};O[g]=!O[g];tick();return;}
+    if(t.classList.contains('snd')){lsSet(SKEY,soundOn()?0:1);if(soundOn())beep(1);tick();return;}}
+  clearInterval(window.__seiriTick);window.__seiriTick=setInterval(tick,20000);setTimeout(tick,60);
   var HOLD=500;
   function cancel(){clearTimeout(cur&&cur.ht);clearInterval(timer);if(cur){cur.bx.classList.remove('drag','held');cur.bx.style.transform='';}cur=null;}
   document.addEventListener('pointerdown',function(ev){var bx=ev.target.closest&&ev.target.closest('.bx');if(!bx||!bx.closest('.plot'))return;
@@ -612,7 +707,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     var nm=(c.bx.querySelector('.nm')||{}).textContent||'',from=rowsOf(src).slice(+c.bx.getAttribute('data-r'),+c.bx.getAttribute('data-r')+(+c.bx.getAttribute('data-s'))).join('+'),to=rowsOf(tg).slice(r,r+s).join('+');
     var cl=clashes(c.bx.getAttribute('data-id'),rowsOf(tg).slice(r,r+s),+c.bx.getAttribute('data-a'),+c.bx.getAttribute('data-b'));
     setTimeout(function(){if(!window.confirm(nm+' 様を\\n'+from+' → '+to+'\\nに移しますか？'+(cl.length?'\\n\\n※ '+cl.join('、')+' と時間がかぶっています。かぶったままで大丈夫ですか？':'')))return;
-      place(c.bx,tg,r,s);c.bx.classList.add('ed');edited();overlaps();},30);}
+      snap();place(c.bx,tg,r,s);c.bx.classList.add('ed');edited();overlaps();},30);}
   document.addEventListener('pointerup',end);document.addEventListener('pointercancel',function(){if(cur&&!cur.held)cancel();else end();});
 })();
 </script>
