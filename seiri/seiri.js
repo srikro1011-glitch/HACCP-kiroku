@@ -310,7 +310,7 @@ h1{font-size:20px;margin:0 0 2px}
 .bar button{font-size:14px;padding:6px 14px;border:1px solid #c47a00;background:#f7a823;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold}
 .bar button.sec{background:#fff;color:#c47a00}
 h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6px}
-.chart{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chart{overflow-x:auto;overflow-y:hidden;touch-action:pan-x pan-y}
 .cin{min-width:${LW * 2 + W}px}
 .axis{position:relative;height:18px;font-size:11px;color:#444}
 .trk{position:absolute;left:${LW}px;right:${LW}px;top:0;bottom:0}
