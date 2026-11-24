@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="整理表">
+<title>整理表（共有）</title>
+<script src="core.js?v=1795499101560"></script>
+<style>
+body{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;background:#f6f4ef;color:#1f1d1a;margin:0;padding:24px 16px}
+.bx{max-width:420px;margin:40px auto;background:#fff;border:1px solid #ddd;border-radius:12px;padding:20px}
+h1{font-size:22px;margin:0 0 12px}
+p{line-height:1.7}
+input{font-size:28px;letter-spacing:.3em;width:100%;box-sizing:border-box;padding:10px;border:2px solid #c47a00;border-radius:8px;text-align:center}
+button{font-size:18px;font-weight:bold;width:100%;margin-top:12px;padding:12px;border:0;border-radius:8px;background:#c47a00;color:#fff}
+.err{color:#c62828;font-weight:bold}
+</style></head>
+<body><div class="bx" id="m"><p>読み込んでいます…</p></div>
+<script>
+(function(){
+  var U='https://qflnjyqkuczadlutvrxs.supabase.co',K='sb_publishable_3dbrAMr925n4HB31i-hdbg_P-SE3FLB';
+  function jst(){return new Date(Date.now()+9*3600e3).toISOString().slice(0,10);}
+  function pin(){try{return JSON.parse(localStorage.getItem('seiri-pin')||'""');}catch(e){return '';}}
+  function rpc(fn,a){return fetch(U+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':K,'Authorization':'Bearer '+K,'Content-Type':'application/json'},body:JSON.stringify(a)}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+  function msg(h){var m=document.getElementById('m');if(m)m.innerHTML=h;}
+  function ask(err){
+    msg('<h1>整理表（共有）</h1><p>最初に1回だけ、共有の暗証番号（6桁）を入れてください。</p>'+(err?'<p class="err">'+err+'</p>':'')+
+      '<input id="pin" type="tel" inputmode="numeric" maxlength="6" autocomplete="off"><button id="go">はじめる</button>');
+    var go=function(){var v=document.getElementById('pin').value.replace(/[^0-9]/g,'');if(v.length<6){alert('6桁で入れてください');return;}
+      try{localStorage.setItem('seiri-pin',JSON.stringify(v));}catch(e){}msg('<p>読み込んでいます…</p>');load();};
+    document.getElementById('go').onclick=go;
+    document.getElementById('pin').onkeydown=function(e){if(e.key==='Enter')go();};
+  }
+  function load(){var p=pin();if(!p){ask('');return;}
+    rpc('seiri_pull',{p_pin:p,p_d:jst(),p_since:0,p_snap_at:null}).then(function(r){
+      if(!r||r.err){try{localStorage.removeItem('seiri-pin');}catch(e){}ask('暗証番号がちがいます（まちがいが続くと10分ほど止まります）');return;}
+      if(!r.snap){msg('<h1>整理表（共有）</h1><p>まだ今日の整理表が届いていません。</p><p>食べログノートを開いたタブレットで、ブックマークから整理表を開いてください。そのタブレットで「🔗 共有」に同じ暗証番号を入れると届きます。</p><p style="color:#666">15秒ごとに見直します。</p>');setTimeout(load,15000);return;}
+      window.__seiriOnSnap(r.snap,r.snap_at);
+    }).catch(function(){msg('<h1>整理表（共有）</h1><p class="err">つながりません。Wi-Fiを確かめてください。</p><p style="color:#666">15秒ごとに見直します。</p>');setTimeout(load,15000);});}
+  window.__seiriOnSnap=function(snap,at){var n=snap;n.child=true;n.navJs='';n.reloadJs='location.reload()';n.autoNote='食べログノートのタブレットから共有・数秒ごとに更新';
+    window.__seiriNorm=n;window.__seiriSnapAt=at;window.__seiriRedraw();};
+  window.__seiriRedraw=function(){var x=window.scrollX,y=window.scrollY;document.open();document.write(seiriBuild(window.__seiriNorm));document.close();window.scrollTo(x,y);};
+  // 日付が変わったら読み直す
+  setInterval(function(){if(window.__seiriNorm&&window.__seiriNorm.date!==jst())location.reload();},60000);
+  load();
+})();
+</script>
+</body></html>
