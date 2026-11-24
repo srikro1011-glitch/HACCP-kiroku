@@ -440,7 +440,7 @@ td.b{font-weight:bold}
 @media print{.y4{display:none!important}}
 @media print{#alerts,.nowl{display:none!important}.bx.soon,.bx.late{animation:none;box-shadow:none}.bigt tr.nowr td,.bigt tr.nextr td{background:none}.bigt tr.nowr td:first-child::after,.bigt tr.nextr td:first-child::after{content:none}}
 </style></head><body>
-<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button id="fixBtn" style="background:#c62828">この席で確定</button><button class="sec" id="unfixBtn" style="display:none">確定をやめて組み直す</button><span id="fixNote" style="font-weight:bold;color:#c62828"></span><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らす、「お帰りになりました」「時間を変える」「キャンセル」もここからできます。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button id="fixBtn" style="background:#c62828">この席で確定</button><button class="sec" id="unfixBtn" style="display:none">確定をやめて組み直す</button><span id="fixNote" style="font-weight:bold;color:#c62828"></span><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らす、「お帰りになりました」「時間を変える」「キャンセル」もここからできます。長押しでつかんで動かすこともできます</span><button class="sec" id="shBtn">🔗 共有</button><span id="shSt" style="font-weight:bold"></span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">${norm.child ? '読み直す' : '食べログノートに戻る'}</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
@@ -504,8 +504,8 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     bs.forEach(function(a,i){var ar=a.getBoundingClientRect(),r0=+a.getAttribute('data-r'),s0=+a.getAttribute('data-s');
       bs.slice(i+1).forEach(function(b){var br=b.getBoundingClientRect(),r1=+b.getAttribute('data-r'),s1=+b.getAttribute('data-s');
         if(r0<r1+s1&&r1<r0+s0&&ar.left<br.right-2&&br.left<ar.right-2){a.classList.add('ov');b.classList.add('ov');}});});});}
-  function edited(){clearTimeout(window.__seiriTimer);var u=document.getElementById('undoBtn');if(u)u.style.display='';
-    var m=document.querySelector('.meta');if(m&&!document.querySelector('.edn')){var e=document.createElement('div');e.className='edn';e.textContent='※ 手で動かした枠があります（黄色の点線）。自動更新は止めました。下の来店人数の行は動かす前の数です。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}}
+  function edited(){var u=document.getElementById('undoBtn');if(u)u.style.display='';
+    var m=document.querySelector('.meta');if(m&&!document.querySelector('.edn')){var e=document.createElement('div');e.className='edn';e.textContent='※ 手で動かした枠があります（黄色の点線）。動かした席は保存されます。下の来店人数の行は動かす前の数です。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}}
   function follow(){if(!cur||!cur.moved)return;cur.bx.style.transform='translateY('+(lastY+window.scrollY-cur.py)+'px)';}
 
 
@@ -524,6 +524,8 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   function rearm(){if(!window.__seiriGo)return;clearTimeout(window.__seiriTimer);window.__seiriTimer=setTimeout(function(){window.__seiriAuto=true;window.__seiriGo(DATE);},300000);}
   function fixUi(){var f=fixGet(),n=document.getElementById('fixNote'),u=document.getElementById('unfixBtn'),b=document.getElementById('fixBtn');
     if(n)n.textContent=f?'確定済み（'+f.at+'）':'';if(u)u.style.display=f?'':'none';if(b)b.textContent=f?'今の席で確定し直す':'この席で確定';}
+  // 最初に組んだ席（動かしたかどうかの見比べ用）
+  var BASE={};document.querySelectorAll('.plot .bx').forEach(function(b){var k=b.getAttribute('data-k');if(!BASE[k])BASE[k]=seatsOf(b.getAttribute('data-id')).slice().sort();});
   (function applyFix(){var f=fixGet();if(!f||!f.seats)return;var ids=allIds(),changed=0;
     Object.keys(ids).forEach(function(id){var k=ids[id],want=f.seats[k];if(!want)return;
       if(seatsOf(id).slice().sort().join()!==want.slice().sort().join()){render(id,want);changed++;}});
@@ -532,11 +534,23 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     overlaps();
     var m=document.querySelector('.meta');if(m){var e=document.createElement('div');e.className='edn';e.textContent='※ '+f.at+' に確定した席で表示しています'+(news?'（確定のあとに入った予約が'+news+'組あります。赤い枠は重なりです）':'')+'。食べログ側の席は変わっていません。';m.parentNode.insertBefore(e,m.nextSibling);}})();
   fixUi();
+  // 動かした席・一時置きを保存（開き直し・自動更新・ほかのタブレットでも同じにする）
+  var MKEY='seiri-mv-'+DATE,PKEY='seiri-pk-'+DATE;
+  function idOfK(k){var bs=document.querySelectorAll('.plot .bx');for(var i=0;i<bs.length;i++)if(bs[i].getAttribute('data-k')===k)return bs[i].getAttribute('data-id');return null;}
+  (function applyMoves(){var mv=lsGet(MKEY,{}),pk=lsGet(PKEY,[]),n=0;
+    Object.keys(mv).forEach(function(k){var id=idOfK(k);if(id&&mv[k]&&mv[k].length&&seatsOf(id).slice().sort().join()!==mv[k].slice().sort().join()){render(id,mv[k]);n++;}});
+    pk.forEach(function(k){var id=idOfK(k);if(id)boxesOf(id).forEach(function(b){b.classList.add('park');});});
+    if(n||pk.length){overlaps();setTimeout(trayPaint,0);}})();
+  function saveLocal(){var mv={},pk=[];uniqBoxes().forEach(function(b){var k=b.getAttribute('data-k'),id=b.getAttribute('data-id'),cs=seatsOf(id).slice().sort();
+      if(BASE[k]&&cs.join()!==BASE[k].join())mv[k]=cs;if(b.classList.contains('park'))pk.push(k);});
+    lsSet(MKEY,mv);lsSet(PKEY,pk);}
+  (function(){var u=document.getElementById('undoBtn');if(u)u.onclick=function(){if(!confirm('手で動かした席と一時置きを、ぜんぶ元に戻しますか？'))return;var b=items();lsSet(MKEY,{});lsSet(PKEY,[]);UNDO.push({b:b,a:items()});shPush();if(window.__seiriRedraw)window.__seiriRedraw();else location.reload();};
+    if(Object.keys(lsGet(MKEY,{})).length||lsGet(PKEY,[]).length)u.style.display='';})();
   document.getElementById('fixBtn').onclick=function(){var ids=allIds(),seats={};Object.keys(ids).forEach(function(id){seats[ids[id]]=seatsOf(id);});
     var d=new Date(Date.now()+9*3600e3);fixSet({at:(d.getUTCMonth()+1)+'/'+d.getUTCDate()+' '+d.getUTCHours()+':'+String(d.getUTCMinutes()).padStart(2,'0'),seats:seats});
     document.querySelectorAll('.plot .bx.ed').forEach(function(b){b.classList.remove('ed');});var x=document.querySelector('.edn');if(x)x.parentNode.removeChild(x);
-    var u=document.getElementById('undoBtn');if(u)u.style.display='none';fixUi();rearm();alert('この席で確定しました。閉じて開き直しても、この並びで出ます（このiPadだけ）。');};
-  document.getElementById('unfixBtn').onclick=function(){if(!confirm('確定をやめて、席を最初から組み直しますか？'))return;fixSet(null);if(window.__seiriGo)window.__seiriGo(DATE);else location.reload();};
+    var u=document.getElementById('undoBtn');if(u)u.style.display='none';fixUi();rearm();saveLocal();shPush();alert('この席で確定しました。閉じて開き直しても、この並びで出ます'+(shPin()?'（共有中のタブレットすべて）':'（このiPadだけ）')+'。');};
+  document.getElementById('unfixBtn').onclick=function(){if(!confirm('確定をやめて、席を最初から組み直しますか？'))return;fixSet(null);lsSet(MKEY,{});lsSet(PKEY,[]);shPush(function(){if(window.__seiriRedraw)window.__seiriRedraw();else if(window.__seiriGo)window.__seiriGo(DATE);else location.reload();});return;if(window.__seiriGo)window.__seiriGo(DATE);else location.reload();};
   function openMenu(bx){var id=bx.getAttribute('data-id'),k=bx.getAttribute('data-k'),came=arrList().indexOf(k)>=0;
     var nm=bx.getAttribute('data-fn')||(bx.querySelector('.nm')||{}).textContent||'',p=+bx.getAttribute('data-p')||1,tt=bx.getAttribute('data-t')||'',q=bx.getAttribute('data-q')||'',tel=bx.getAttribute('data-tel')||'';
     var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
@@ -643,15 +657,14 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     if(prev){Object.keys(now).forEach(function(k){if(!prev[k]){news.push({t:'new',s:now[k],at:hm(nowM())});add++;}});Object.keys(prev).forEach(function(k){if(!now[k]){news.push({t:'del',s:prev[k],at:hm(nowM())});add++;}});}
     lsSet(SEENKEY,now);lsSet(NEWSKEY,news.slice(-20));if(add)beep(1);})();
   // 1つ戻す
-  var UNDO=[];
-  function snapNow(){var seats={},park=[];uniqBoxes().forEach(function(b){var id=b.getAttribute('data-id');seats[id]=seatsOf(id);if(b.classList.contains('park'))park.push(id);});
-    return {tm:JSON.parse(JSON.stringify(tmGet())),cx:cxList().slice(),arr:arrList().slice(),seats:seats,park:park};}
-  function snap(){UNDO.push(snapNow());if(UNDO.length>20)UNDO.shift();setTimeout(tick,30);}
-  function undo(){var s=UNDO.pop();if(!s)return;
-    Object.keys(s.seats).forEach(function(id){if(boxesOf(id).length&&seatsOf(id).slice().sort().join()!==s.seats[id].slice().sort().join())render(id,s.seats[id]);});
-    document.querySelectorAll('.plot .bx').forEach(function(b){b.classList.toggle('park',s.park.indexOf(b.getAttribute('data-id'))>=0);});
-    tmSave(s.tm);document.querySelectorAll('.plot .bx').forEach(function(b){if(b.hasAttribute('data-a0'))setBoxTime(b,+b.getAttribute('data-a0'),+b.getAttribute('data-b0'));b.classList.remove('gone','tm');});applyTimes();
-    cxSave(s.cx);cxPaint();arrSave(s.arr);arrPaint();overlaps();trayPaint();tick();}
+  // 1つ戻す（自分が変えた所だけを戻す。ほかのタブレットの変更は戻さない。描き直しても覚えておく）
+  if(window.__seiriUndoDate!==DATE){window.__seiriUndo=[];window.__seiriUndoDate=DATE;}
+  var UNDO=window.__seiriUndo;
+  function snap(){var e={b:items(),a:null};UNDO.push(e);if(UNDO.length>20)UNDO.shift();setTimeout(function(){saveLocal();e.a=items();tick();shPush();},30);}
+  function undo(){var e=UNDO.pop();if(!e)return;var a=e.a||items(),b=e.b,ks={},need='';
+    Object.keys(a).concat(Object.keys(b)).forEach(function(k){if(!same(a[k],b[k]))ks[k]=1;});
+    Object.keys(ks).forEach(function(k){var w=setItem(k,k in b?b[k]:null);if(w==='full')need='full';else if(w&&!need)need='lite';});
+    shPush();if(need==='full'){if(window.__seiriRedraw)window.__seiriRedraw();}else{lite();trayPaint();}}
   // ④ 時間ごとの来店予定（30分ごと・席ごと）
   function nsort(a,b){var x=a.replace(/\\d+/g,function(d){return ('000'+d).slice(-4);}),y=b.replace(/\\d+/g,function(d){return ('000'+d).slice(-4);});return x<y?-1:x>y?1:0;}
   function r4(){var el=document.getElementById('yotei');if(!el)return;var arr=arrList(),cx=cxList(),sl={},n=nowM(),today=isToday();
@@ -719,6 +732,59 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     if(t.classList.contains('tg')){var g=t.getAttribute('data-g'),O=window.__seiriOpen=window.__seiriOpen||{};O[g]=!O[g];tick();return;}
     if(t.classList.contains('snd')){lsSet(SKEY,soundOn()?0:1);if(soundOn())beep(1);tick();return;}}
   clearInterval(window.__seiriTick);window.__seiriTick=setInterval(tick,20000);setTimeout(tick,60);
+  // ---- タブレット共有（Supabase） ----
+  var SHU='https://qflnjyqkuczadlutvrxs.supabase.co',SHK='sb_publishable_3dbrAMr925n4HB31i-hdbg_P-SE3FLB',SYK='seiri-sync-'+DATE;
+  function shPin(){return lsGet('seiri-pin','');}
+  function rpc(fn,args){return fetch(SHU+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SHK,'Authorization':'Bearer '+SHK,'Content-Type':'application/json'},body:JSON.stringify(args)}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+  function items(){var o={};arrList().forEach(function(k){o['a:'+k]=1;});cxList().forEach(function(k){o['c:'+k]=1;});var t=tmGet();Object.keys(t).forEach(function(k){o['t:'+k]=t[k];});
+    var mv=lsGet(MKEY,{});Object.keys(mv).forEach(function(k){o['m:'+k]=mv[k];});lsGet(PKEY,[]).forEach(function(k){o['p:'+k]=1;});var f=fixGet();if(f)o.fix=f;return o;}
+  function same(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+  function syGet(){return lsGet(SYK,{rev:0,last:null});}
+  function shSt(t,c){var e=document.getElementById('shSt');if(e){e.textContent=t;e.style.color=c||'#1e7a3c';}}
+  var shBusy=false,shAgain=false,shCbs=[];
+  function shPush(cb){if(cb)shCbs.push(cb);var pin=shPin();if(!pin){var q=shCbs;shCbs=[];q.forEach(function(f){f();});return;}
+    if(shBusy){shAgain=true;return;}var sy=syGet();if(!sy.last){var q2=shCbs;shCbs=[];q2.forEach(function(f){f();});return;}
+    var cur=items(),diff={},n=0;Object.keys(cur).forEach(function(k){if(!same(cur[k],sy.last[k])){diff[k]=cur[k];n++;}});Object.keys(sy.last).forEach(function(k){if(!(k in cur)&&sy.last[k]!=null){diff[k]=null;n++;}});
+    if(!n){var q3=shCbs;shCbs=[];q3.forEach(function(f){f();});return;}
+    shBusy=true;rpc('seiri_set',{p_pin:pin,p_d:DATE,p_items:diff}).then(function(r){shBusy=false;if(r===-1){shBad();return;}
+      var s2=syGet();s2.last=s2.last||{};Object.keys(diff).forEach(function(k){if(diff[k]==null)delete s2.last[k];else s2.last[k]=diff[k];});lsSet(SYK,s2);shSt('🔗 共有中');
+      var q=shCbs;shCbs=[];q.forEach(function(f){f();});if(shAgain){shAgain=false;shPush();}})
+    .catch(function(){shBusy=false;shSt('🔗 つながっていません（あとで送ります）','#c62828');var q=shCbs;shCbs=[];q.forEach(function(f){f();});});}
+  function shBad(){lsSet('seiri-pin','');shSt('🔗 暗証番号がちがいます','#c62828');}
+  function setItem(k,v){var c=k.charAt(0),key=k.slice(2);
+    if(k==='fix'){fixSet(v||null);return 'full';}
+    if(c==='a'){var a=arrList(),i=a.indexOf(key);if(v&&i<0)a.push(key);if(!v&&i>=0)a.splice(i,1);arrSave(a);return 'lite';}
+    if(c==='c'){var x=cxList(),j=x.indexOf(key);if(v&&j<0)x.push(key);if(!v&&j>=0)x.splice(j,1);cxSave(x);return 'lite';}
+    if(c==='t'){var o=tmGet();if(v)o[key]=v;else delete o[key];tmSave(o);return 'lite';}
+    if(c==='m'){var m=lsGet(MKEY,{});if(v)m[key]=v;else delete m[key];lsSet(MKEY,m);return 'full';}
+    if(c==='p'){var p=lsGet(PKEY,[]),q=p.indexOf(key);if(v&&q<0)p.push(key);if(!v&&q>=0)p.splice(q,1);lsSet(PKEY,p);return 'full';}
+    return '';}
+  function lite(){document.querySelectorAll('.plot .bx').forEach(function(b){if(b.hasAttribute('data-a0'))setBoxTime(b,+b.getAttribute('data-a0'),+b.getAttribute('data-b0'));b.classList.remove('gone','tm');});
+    applyTimes();cxPaint();arrPaint();overlaps();tick();}
+  var shWantFull=false;
+  function busyUi(){return !!document.getElementById('sp')||!!cur;}
+  function full(){if(busyUi()){shWantFull=true;return;}shWantFull=false;if(window.__seiriRedraw)window.__seiriRedraw();}
+  function shPull(){var pin=shPin();if(!pin)return;var sy=syGet();
+    rpc('seiri_pull',{p_pin:pin,p_d:DATE,p_since:sy.last?sy.rev:0,p_snap_at:window.__seiriSnapAt||null}).then(function(r){
+      if(!r||r.err){shBad();return;}var first=!sy.last,s2=syGet(),need='';s2.last=s2.last||{};
+      if(first){var loc=items(),remote={};}
+      (r.marks||[]).forEach(function(m){if(first)remote[m.k]=1;var v=m.v==null?null:m.v,mine=items()[m.k];
+        if(!same(v,mine===undefined?null:mine)){var w=setItem(m.k,v);if(w==='full')need='full';else if(w&&!need)need='lite';}
+        if(v==null)delete s2.last[m.k];else s2.last[m.k]=v;});
+      s2.rev=Math.max(s2.rev||0,r.rev||0);lsSet(SYK,s2);
+      if(first){var add=0;Object.keys(loc).forEach(function(k){if(!remote[k]){setItem(k,loc[k]);add++;}});if(add){need=need||'lite';}}
+      shSt('🔗 共有中');
+      if(r.snap&&window.__seiriOnSnap){if(!busyUi())window.__seiriOnSnap(r.snap,r.snap_at);return;}
+      if(need==='full')full();else if(need==='lite')lite();
+      if(first)shPush();})
+    .catch(function(){shSt('🔗 つながっていません','#c62828');});}
+  document.getElementById('shBtn').onclick=function(){var pin=shPin();
+    if(pin){if(confirm('このタブレットの共有をやめますか？（印はこのタブレットに残ります）')){lsSet('seiri-pin','');shSt('');}return;}
+    var v=window.prompt('タブレット共有の暗証番号（6桁）を入れてください','');if(!v)return;v=String(v).replace(/[^0-9]/g,'');
+    lsSet('seiri-pin',v);lsSet(SYK,{rev:0,last:null});shSt('🔗 つないでいます…','#555');
+    if(window.__seiriPushSnap)window.__seiriPushSnap();shPull();};
+  clearInterval(window.__seiriSh);window.__seiriSh=setInterval(function(){if(shWantFull&&!busyUi()){full();return;}shPull();},5000);
+  if(shPin()){shSt('🔗 共有中');setTimeout(shPull,200);}
   var HOLD=500;
   function cancel(){clearTimeout(cur&&cur.ht);clearInterval(timer);if(cur){cur.bx.classList.remove('drag','held');cur.bx.style.transform='';}cur=null;}
   document.addEventListener('pointerdown',function(ev){var bx=ev.target.closest&&ev.target.closest('.bx');if(!bx||!bx.closest('.plot'))return;
@@ -829,9 +895,21 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
       seats: d.seats.slice().sort((x, y) => x.displayOrder - y.displayOrder).map(s => ({ name: s.name, type: s.seatType.name, blocked: (s.onlineBookingBlockings || []).length > 0 })),
       bookings: d.bookings.edges.map(e => e.node).map(n => ({ from: n.timeFrom, to: n.timeTo, name: (n.lastNameKana || n.lastName || '') + ' ' + (n.firstNameKana || n.firstName || ''), n: n.numberOfPeople, kids: n.numberOfChildren || 0, tel: n.telephoneNumber || '', seats: n.seats.map(s => s.name), status: n.bookingStatus, req: n.requestsAndComments, memo: n.memo }))
     };
+    norm.parent = true; window.__seiriNorm = norm;
+    // 開いたまま描き直す（ほかのタブレットで席を動かしたときなど）
+    window.__seiriRedraw = function () { const x = window.scrollX, y = window.scrollY; w.document.open(); w.document.write(seiriBuild(window.__seiriNorm)); w.document.close(); window.scrollTo(x, y); };
+    // 共有中なら、その日の予約をSupabaseへ送る（ほかのタブレットは食べログを開かなくても見られる）
+    window.__seiriPushSnap = function () {
+      let pin = ''; try { pin = JSON.parse(localStorage.getItem('seiri-pin') || '""'); } catch (e) {}
+      if (!pin) return;
+      const n = window.__seiriNorm, data = {}; Object.keys(n).forEach(k => { if (!/^(navJs|reloadJs|autoNote|parent)$/.test(k)) data[k] = n[k]; });
+      fetch('https://qflnjyqkuczadlutvrxs.supabase.co/rest/v1/rpc/seiri_push', { method: 'POST', headers: { 'apikey': 'sb_publishable_3dbrAMr925n4HB31i-hdbg_P-SE3FLB', 'Authorization': 'Bearer sb_publishable_3dbrAMr925n4HB31i-hdbg_P-SE3FLB', 'Content-Type': 'application/json' }, body: JSON.stringify({ p_pin: pin, p_d: n.date, p_data: data }) })
+        .then(r => r.json()).then(t => { if (t) window.__seiriSnapAt = t; }).catch(() => {});
+    };
     const html = seiriBuild(norm);
     w.document.open(); w.document.write(html); w.document.close();
     if (auto) window.scrollTo(sx, sy);
+    window.__seiriPushSnap();
     // 開いている間は5分ごとに読み直す
     window.__seiriTimer = setTimeout(() => { window.__seiriAuto = true; window.__seiriGo(date); }, 5 * 60 * 1000);
   } catch (e) { if (auto) { window.__seiriTimer = setTimeout(() => { window.__seiriAuto = true; window.__seiriGo(date); }, 60 * 1000); return; } ov.style.color = '#c00'; ov.innerHTML = '<p style="font:16px sans-serif;padding:20px;color:#c00">読み込めませんでした。食べログノートにログインしているか確かめてください。<br><small>' + String(e.message || e).replace(/</g, '&lt;') + '</small><br><button onclick="this.parentNode.parentNode.remove()">閉じる</button></p>'; }
