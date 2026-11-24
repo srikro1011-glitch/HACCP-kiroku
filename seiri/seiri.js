@@ -428,15 +428,14 @@ td.b{font-weight:bold}
 .bigt tr.nowr td{background:#ffe9a8}.bigt tr.nextr td{background:#fff6d9}
 .bigt tr.nowr td:first-child::after{content:' いま';font-size:12px;color:#c62828}.bigt tr.nextr td:first-child::after{content:' 次';font-size:12px;color:#8a6d00}
 .y4{margin-top:22px}.y4 .hint4{font-size:13px;color:#666;margin:0 0 6px}
-.y4 .sl{display:flex;gap:12px;border-top:2px solid #ddd;padding:8px 4px;align-items:flex-start}
-.y4 .sl.now{background:#ffe9a8}.y4 .sl.next{background:#fff6d9}
-.y4 .tm{font-size:24px;font-weight:bold;min-width:74px;line-height:1.2}.y4 .tm small{display:block;font-size:12px;font-weight:normal;color:#555}
-.y4 .bd{flex:1;min-width:0}
-.y4 .ln{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0}
-.y4 .ar{font-size:13px;font-weight:bold;color:#555;min-width:66px}
-.y4 .sc{font:inherit;font-size:19px;font-weight:bold;padding:4px 10px;border-radius:8px;border:3px solid #1f5fbf;background:#fff;color:#111;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;min-height:46px;justify-content:center}
+.y4 .cl4{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;touch-action:pan-x pan-y;padding-bottom:6px;align-items:stretch}
+.y4 .sl{flex:0 0 112px;border:2px solid #ddd;border-radius:8px;padding:4px;display:flex;flex-direction:column;gap:4px;background:#fff}
+.y4 .sl.now{background:#ffe9a8;border-color:#e0b000}.y4 .sl.next{background:#fff6d9}
+.y4 .tm{font-size:22px;font-weight:bold;text-align:center;line-height:1.15;border-bottom:2px solid #ccc;padding-bottom:3px}.y4 .tm small{display:block;font-size:12px;font-weight:normal;color:#555}
+.y4 .ar{font-size:12px;font-weight:bold;color:#555;text-align:center;margin-top:2px}
+.y4 .sc{width:100%;font:inherit;font-size:18px;font-weight:bold;padding:4px 10px;border-radius:8px;border:3px solid #1f5fbf;background:#fff;color:#111;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;min-height:46px;justify-content:center}
 .y4 .sc.p2{border-color:#1e7a3c}.y4 .sc.p3{border-color:#5b3a9e}
-.y4 .sc small{font-size:11px;font-weight:normal;color:#444}
+.y4 .sc .sn{white-space:nowrap}.y4 .sc small{white-space:nowrap;font-size:11px;font-weight:normal;color:#444}
 .y4 .sc.came{opacity:.3}.y4 .sc.late{box-shadow:0 0 0 3px #e53935}
 @media print{.y4{display:none!important}}
 @media print{#alerts,.nowl{display:none!important}.bx.soon,.bx.late{animation:none;box-shadow:none}.bigt tr.nowr td,.bigt tr.nextr td{background:none}.bigt tr.nowr td:first-child::after,.bigt tr.nextr td:first-child::after{content:none}}
@@ -461,7 +460,7 @@ ${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).s
 <h2>要望・メモのある予約（${reqs.length}組）</h2>
 ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人数</th><th>席</th><th>内容</th></tr>${reqRows}</table>` : '<div class="meta">ありません</div>'}
 </div></div>
-<div class="y4"><h1 class="big1">④ 時間ごとの来店予定（どの席に来るか）</h1><p class="hint4">席の番号を押すと「ご来店しました」になって薄くなり、上の①②の枠も同じく薄くなります。もう一度押すと取り消せます。</p><div id="yotei"></div></div>
+<div class="y4"><h1 class="big1">④ 時間ごとの来店予定（どの席に来るか）</h1><p class="hint4">席の番号を押すと「ご来店しました」になって薄くなり、上の①②の枠も同じく薄くなります。もう一度押すと取り消せます。左右にずらすと、ほかの時間も見られます。</p><div id="yotei"></div></div>
 <script>
 (function(){
   var DATE='${norm.date}',T0=${t0},T1=${t1};
@@ -663,15 +662,17 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
       (sl[m]=sl[m]||[]).push({id:id,c:c,t:t,nm:surname(b),p:+b.getAttribute('data-p'),came:arr.indexOf(k)>=0,late:b.classList.contains('late')});});
     var ms=Object.keys(sl).map(Number).sort(function(x,y){return x-y;}),nowM30=n-n%30,h='';
     if(!ms.length){el.innerHTML='<div class="meta">予約はありません</div>';return;}
-    function chip(g,list){var p=g.p<=1?'p1':g.p===2?'p2':'p3';return '<button class="sc '+p+(g.came?' came':'')+(g.late&&!g.came?' late':'')+'" data-id="'+esc2(g.id)+'">'+esc2(list.join('・'))+'<small>'+esc2(g.nm)+' '+g.p+'名</small></button>';}
+    function chip(g,list){var p=g.p<=1?'p1':g.p===2?'p2':'p3';return '<button class="sc '+p+(g.came?' came':'')+(g.late&&!g.came?' late':'')+'" data-id="'+esc2(g.id)+'"><span>'+list.map(function(x){return '<span class="sn">'+esc2(x)+'</span>';}).join('・')+'</span><small>'+esc2(g.nm)+' '+g.p+'名</small></button>';}
     ms.forEach(function(m){var G=sl[m].slice().sort(function(x,y){return nsort((x.t[0]||x.c[0]||''),(y.t[0]||y.c[0]||''));}),
       ppl=G.reduce(function(s,g){return s+g.p;},0),done=G.filter(function(g){return g.came;}),
       T=G.filter(function(g){return g.t.length;}),C=G.filter(function(g){return g.c.length;});
       var cls=today&&m===nowM30?' now':(today&&m===nowM30+30?' next':'');
-      h+='<div class="sl'+cls+'"><div class="tm">'+hm(m)+'<small>'+G.length+'組 '+ppl+'名'+(done.length?'<br>来店 '+done.length+'組':'')+'</small></div><div class="bd">'
-        +(T.length?'<div class="ln"><span class="ar">テーブル</span>'+T.map(function(g){return chip(g,g.t);}).join('')+'</div>':'')
-        +(C.length?'<div class="ln"><span class="ar">カウンター</span>'+C.map(function(g){return chip(g,g.c);}).join('')+'</div>':'')+'</div></div>';});
-    el.innerHTML=h;}
+      h+='<div class="sl'+cls+'"'+(cls===' now'?' id="y4now"':'')+'><div class="tm">'+hm(m)+'<small>'+G.length+'組 '+ppl+'名'+(done.length?'<br>来店 '+done.length+'組':'')+'</small></div>'
+        +(T.length?'<div class="ar">テーブル</div>'+T.map(function(g){return chip(g,g.t);}).join(''):'')
+        +(C.length?'<div class="ar">カウンター</div>'+C.map(function(g){return chip(g,g.c);}).join(''):'')+'</div>';});
+    var sx=(el.querySelector('.cl4')||{}).scrollLeft||0,first=!el.querySelector('.cl4');
+    el.innerHTML='<div class="cl4">'+h+'</div>';var cl=el.querySelector('.cl4'),nw=document.getElementById('y4now');
+    if(first&&nw)cl.scrollLeft=Math.max(0,nw.offsetLeft-cl.offsetLeft-8);else cl.scrollLeft=sx;}
   document.addEventListener('click',function(ev){var t=ev.target.closest&&ev.target.closest('#yotei .sc');if(!t)return;
     var b=boxesOf(t.getAttribute('data-id'))[0];if(!b)return;var k=b.getAttribute('data-k');snap();var a=arrList(),i=a.indexOf(k);if(i>=0)a.splice(i,1);else a.push(k);arrSave(a);arrPaint();r4();});
   // 20秒ごとに見直す
