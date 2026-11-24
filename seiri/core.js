@@ -9,6 +9,7 @@ function seiriBuild(norm) {
   const isCounter = s => /カウンター/.test(s.type);
 
   const arrange = norm.arrange !== false; // 当日だけ並べ直す。ほかの日は食べログのまま
+  const C2T = 'none'; // カウンターの予約はカウンターで組む（11/24 工藤さん）。'want'ならテーブル希望だけテーブルへ
   // ---- 2名テーブル（T1〜T9）の団体を T1〜T4 / T5〜T8 の中にまとめる（当日だけ）----
   // T1〜T8は2名掛けが並び、4と5の間に柱。T9は離れているので団体には使わない。
   const tNow = new Map(); let tMoved = 0, tOk = true;
@@ -58,7 +59,7 @@ function seiriBuild(norm) {
     const free = (t, a, e) => has(t) && !(occ[t] || []).some(x => x[0] < e && a < x[1]);
     const txt = b => (b.req || '') + ' ' + (b.memo || '');
     const wantT = b => /テーブル/.test(txt(b)), wantC = b => /カウンター/.test(txt(b)) && !wantT(b);
-    const list = live.filter(b => b.seats.length && b.seats.every(n => cName.has(n)) && b.n <= 4 && !wantC(b))
+    const list = live.filter(b => b.seats.length && b.seats.every(n => cName.has(n)) && b.n <= 4 && !wantC(b) && (C2T === 'want' ? wantT(b) : C2T !== 'none'))
       .sort((x, y) => (wantT(y) - wantT(x)) || (y.n - x.n) || (toM(x.from) - toM(y.from)));
     list.forEach(b => {
       const a = toM(b.from), e = toM(b.to);
@@ -466,7 +467,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
 <div class="y4"><h1 class="big1">④ 時間ごとの来店予定（どの席に来るか）</h1><p class="hint4">席の番号を押すと「ご来店しました」になって薄くなり、上の①②の枠も同じく薄くなります。もう一度押すと取り消せます。左右にずらすと、ほかの時間も見られます。</p><div id="yotei"></div></div>
 <script>
 (function(){
-  var DATE='${norm.date}',T0=${t0},T1=${t1},MADE='${esc(norm.made || '')}',CHILD=${norm.child ? 1 : 0},BLK=${JSON.stringify(norm.seats.filter(s => s.blocked).map(s => s.name))};
+  var DATE='${norm.date}',T0=${t0},T1=${t1},MADE='${esc(norm.made || '')}',CHILD=${norm.child ? 1 : 0},C2T='${C2T}',BLK=${JSON.stringify(norm.seats.filter(s => s.blocked).map(s => s.name))};
   var cur=null,lastY=0,timer=null;
   // 時間の変更（帰った・時間を変える）: このiPadに保存して、開き直し・自動更新でも同じにする
   var TKEY='seiri-time-'+DATE;
@@ -557,8 +558,8 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
       var q=b.getAttribute('data-q')||'',isC=cur0.every(function(x){return rowsC.indexOf(x)>=0;}),wantC=/カウンター/.test(q)&&!/テーブル/.test(q),want=null;
       if(cur0.length&&cur0.every(function(x){return !bz[x];}))want=cur0;
       if(!want&&!isC&&cur0.length>1&&cur0.every(function(x){return T2.indexOf(x)>=0;})){var L=cur0.length;BLOCKS.forEach(function(bl){for(var st=0;!want&&st+L<=bl.length;st++){var c=bl.slice(st,st+L);if(c.every(ok))want=c;}});}
-      if(!want&&n<=4&&!(isC&&wantC)){var pool=n<=2?T2.concat(T4):T4;for(var i=0;i<pool.length;i++)if(ok(pool[i])){want=[pool[i]];break;}}
-      if(!want){var need=isC?Math.max(1,Math.min(n,cur0.length||n)):n,best=null,o0=rowsC.indexOf(cur0[0]);
+      if(!want&&n<=4&&(!isC||(C2T==='want'&&/テーブル/.test(q)))){var pool=n<=2?T2.concat(T4):T4;for(var i=0;i<pool.length;i++)if(ok(pool[i])){want=[pool[i]];break;}}
+      if(!want&&isC){var need=isC?Math.max(1,Math.min(n,cur0.length||n)):n,best=null,o0=rowsC.indexOf(cur0[0]);
         for(var st=0;st+need<=rowsC.length;st++){var c=rowsC.slice(st,st+need);if(!c.every(ok))continue;
           var sc=(st===0||ok(rowsC[st-1])?1:0)+(st+need===rowsC.length||ok(rowsC[st+need])?1:0),d=o0>=0?Math.abs(st-o0):st;
           if(!best||sc>best.sc||(sc===best.sc&&d<best.d))best={c:c,sc:sc,d:d};}
