@@ -427,6 +427,18 @@ td.b{font-weight:bold}
 .nowl{position:absolute;top:0;bottom:0;width:0;border-left:2px solid #e53935;z-index:6;pointer-events:none}
 .bigt tr.nowr td{background:#ffe9a8}.bigt tr.nextr td{background:#fff6d9}
 .bigt tr.nowr td:first-child::after{content:' いま';font-size:12px;color:#c62828}.bigt tr.nextr td:first-child::after{content:' 次';font-size:12px;color:#8a6d00}
+.y4{margin-top:22px}.y4 .hint4{font-size:13px;color:#666;margin:0 0 6px}
+.y4 .sl{display:flex;gap:12px;border-top:2px solid #ddd;padding:8px 4px;align-items:flex-start}
+.y4 .sl.now{background:#ffe9a8}.y4 .sl.next{background:#fff6d9}
+.y4 .tm{font-size:24px;font-weight:bold;min-width:74px;line-height:1.2}.y4 .tm small{display:block;font-size:12px;font-weight:normal;color:#555}
+.y4 .bd{flex:1;min-width:0}
+.y4 .ln{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0}
+.y4 .ar{font-size:13px;font-weight:bold;color:#555;min-width:66px}
+.y4 .sc{font:inherit;font-size:19px;font-weight:bold;padding:4px 10px;border-radius:8px;border:3px solid #1f5fbf;background:#fff;color:#111;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;min-height:46px;justify-content:center}
+.y4 .sc.p2{border-color:#1e7a3c}.y4 .sc.p3{border-color:#5b3a9e}
+.y4 .sc small{font-size:11px;font-weight:normal;color:#444}
+.y4 .sc.came{opacity:.3}.y4 .sc.late{box-shadow:0 0 0 3px #e53935}
+@media print{.y4{display:none!important}}
 @media print{#alerts,.nowl{display:none!important}.bx.soon,.bx.late{animation:none;box-shadow:none}.bigt tr.nowr td,.bigt tr.nextr td{background:none}.bigt tr.nowr td:first-child::after,.bigt tr.nextr td:first-child::after{content:none}}
 </style></head><body>
 <div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button id="fixBtn" style="background:#c62828">この席で確定</button><button class="sec" id="unfixBtn" style="display:none">確定をやめて組み直す</button><span id="fixNote" style="font-weight:bold;color:#c62828"></span><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らす、「お帰りになりました」「時間を変える」「キャンセル」もここからできます。長押しでつかんで動かすこともできます</span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">食べログノートに戻る</button></div>
@@ -449,6 +461,7 @@ ${chart(tGrid, tHtml, tSeats.length, 'pt', arrRow(live.filter(b => seatsNow(b).s
 <h2>要望・メモのある予約（${reqs.length}組）</h2>
 ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人数</th><th>席</th><th>内容</th></tr>${reqRows}</table>` : '<div class="meta">ありません</div>'}
 </div></div>
+<div class="y4"><h1 class="big1">④ 時間ごとの来店予定（どの席に来るか）</h1><p class="hint4">席の番号を押すと「ご来店しました」になって薄くなり、上の①②の枠も同じく薄くなります。もう一度押すと取り消せます。</p><div id="yotei"></div></div>
 <script>
 (function(){
   var DATE='${norm.date}',T0=${t0},T1=${t1};
@@ -640,6 +653,27 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     document.querySelectorAll('.plot .bx').forEach(function(b){b.classList.toggle('park',s.park.indexOf(b.getAttribute('data-id'))>=0);});
     tmSave(s.tm);document.querySelectorAll('.plot .bx').forEach(function(b){if(b.hasAttribute('data-a0'))setBoxTime(b,+b.getAttribute('data-a0'),+b.getAttribute('data-b0'));b.classList.remove('gone','tm');});applyTimes();
     cxSave(s.cx);cxPaint();arrSave(s.arr);arrPaint();overlaps();trayPaint();tick();}
+  // ④ 時間ごとの来店予定（30分ごと・席ごと）
+  function nsort(a,b){var x=a.replace(/\\d+/g,function(d){return ('000'+d).slice(-4);}),y=b.replace(/\\d+/g,function(d){return ('000'+d).slice(-4);});return x<y?-1:x>y?1:0;}
+  function r4(){var el=document.getElementById('yotei');if(!el)return;var arr=arrList(),cx=cxList(),sl={},n=nowM(),today=isToday();
+    uniqBoxes().forEach(function(b){var k=b.getAttribute('data-k');if(cx.indexOf(k)>=0||b.classList.contains('park'))return;
+      var id=b.getAttribute('data-id'),a=+b.getAttribute('data-a'),m=a-a%30,c=[],t=[];
+      boxesOf(id).forEach(function(x){var L=x.closest('.plot.pc')?c:t;seatsOfBox(x).forEach(function(s){if(L.indexOf(s)<0)L.push(s);});});
+      c.sort(nsort);t.sort(nsort);
+      (sl[m]=sl[m]||[]).push({id:id,c:c,t:t,nm:surname(b),p:+b.getAttribute('data-p'),came:arr.indexOf(k)>=0,late:b.classList.contains('late')});});
+    var ms=Object.keys(sl).map(Number).sort(function(x,y){return x-y;}),nowM30=n-n%30,h='';
+    if(!ms.length){el.innerHTML='<div class="meta">予約はありません</div>';return;}
+    function chip(g,list){var p=g.p<=1?'p1':g.p===2?'p2':'p3';return '<button class="sc '+p+(g.came?' came':'')+(g.late&&!g.came?' late':'')+'" data-id="'+esc2(g.id)+'">'+esc2(list.join('・'))+'<small>'+esc2(g.nm)+' '+g.p+'名</small></button>';}
+    ms.forEach(function(m){var G=sl[m].slice().sort(function(x,y){return nsort((x.t[0]||x.c[0]||''),(y.t[0]||y.c[0]||''));}),
+      ppl=G.reduce(function(s,g){return s+g.p;},0),done=G.filter(function(g){return g.came;}),
+      T=G.filter(function(g){return g.t.length;}),C=G.filter(function(g){return g.c.length;});
+      var cls=today&&m===nowM30?' now':(today&&m===nowM30+30?' next':'');
+      h+='<div class="sl'+cls+'"><div class="tm">'+hm(m)+'<small>'+G.length+'組 '+ppl+'名'+(done.length?'<br>来店 '+done.length+'組':'')+'</small></div><div class="bd">'
+        +(T.length?'<div class="ln"><span class="ar">テーブル</span>'+T.map(function(g){return chip(g,g.t);}).join('')+'</div>':'')
+        +(C.length?'<div class="ln"><span class="ar">カウンター</span>'+C.map(function(g){return chip(g,g.c);}).join('')+'</div>':'')+'</div></div>';});
+    el.innerHTML=h;}
+  document.addEventListener('click',function(ev){var t=ev.target.closest&&ev.target.closest('#yotei .sc');if(!t)return;
+    var b=boxesOf(t.getAttribute('data-id'))[0];if(!b)return;var k=b.getAttribute('data-k');snap();var a=arrList(),i=a.indexOf(k);if(i>=0)a.splice(i,1);else a.push(k);arrSave(a);arrPaint();r4();});
   // 20秒ごとに見直す
   function tick(){var bar=document.getElementById('alerts');
     if(!bar){bar=document.createElement('div');bar.id='alerts';document.body.insertBefore(bar,document.body.firstChild);bar.addEventListener('click',onBar);}
@@ -663,6 +697,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
       var rows=[].slice.call(document.querySelectorAll('.bigt tr[data-m]')),hit=-1;rows.forEach(function(r,i){var m=+r.getAttribute('data-m');if(m<=n&&n<m+30)hit=i;});
       if(hit>=0){rows[hit].classList.add('nowr');if(rows[hit+1])rows[hit+1].classList.add('nextr');}
       else{var nx=rows.filter(function(r){return +r.getAttribute('data-m')>n;})[0];if(nx)nx.classList.add('nextr');}}
+    r4();
     if(!today&&!news.length&&!UNDO.length){bar.innerHTML='';return;}
     var h='';
     if(today){h+='<b class="clk">'+hm(n)+'</b>';
