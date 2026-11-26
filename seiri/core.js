@@ -4,7 +4,10 @@
 function seiriBuild(norm) {
   const toM = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const live = norm.bookings.filter(b => !/CANCEL/.test(b.status || '') && b.seats.length);
+  // 整理表の「＋新規のお客さん」で足した枠（このタブレット・共有で保存。食べログには入らない）
+  let adds = {}; try { adds = JSON.parse(localStorage.getItem('seiri-add-' + norm.date) || '{}') || {}; } catch (e) { const m = window.__seiriLs || {}; adds = m['seiri-add-' + norm.date] || {}; }
+  const manual = Object.keys(adds).filter(id => adds[id] && adds[id].seats && adds[id].seats.length).map(id => Object.assign({ kids: 0, tel: '', req: '', memo: '' }, adds[id], { status: 'MANUAL', manual: id }));
+  const live = norm.bookings.concat(manual).filter(b => !/CANCEL/.test(b.status || '') && b.seats.length);
   live.forEach((b, i) => { b.id = i; });
   const isCounter = s => /カウンター/.test(s.type);
 
@@ -333,7 +336,8 @@ h2{font-size:15px;margin:12px 0 4px;border-left:5px solid #f7a823;padding-left:6
 .bx.ed{outline:3px dashed #ffd400;outline-offset:-3px}
 .bx.nw{box-shadow:inset 0 0 0 3px #ff6d00}.bx.nw .nm::before{content:"新";background:#ff6d00;color:#fff;font-weight:bold;border-radius:3px;padding:0 3px;margin-right:3px}
 .nwn{background:#fff1e0;border:2px solid #ff6d00;border-radius:8px;padding:6px 10px;margin:6px 0;font-size:15px;font-weight:bold;color:#7a3300;line-height:1.6}
-#upd{font-weight:bold;font-size:14px}#upd.old{color:#c62828}
+#upd{font-weight:bold;font-size:14px}
+#sp .ad label{display:block;font-weight:bold;margin:8px 0 3px}#sp .ad input,#sp .ad select{font-size:18px;padding:6px;width:100%;box-sizing:border-box}#sp .ad .nb{display:flex;flex-wrap:wrap;gap:6px}#sp .ad .nb button{font-size:18px;min-width:48px;padding:8px}#sp .ad .nb button.on{background:#ff6d00;color:#fff;border-color:#ff6d00}#sp .ad .row2{display:flex;gap:8px}#sp .ad .row2>div{flex:1}#upd.old{color:#c62828}
 .bx.ov{outline:3px solid #ff2d2d;outline-offset:-3px}
 .hint{font-size:12px;color:#666}
 .edn{color:#b00;font-weight:bold;font-size:12px}
@@ -409,7 +413,7 @@ td.r{text-align:right}
 td.b{font-weight:bold}
 .hb{height:10px;min-width:0;background:#c0392b;border-radius:2px}
 .ng{color:#d33;font-weight:bold}
-@media print{.bar,#tray,.nwn{display:none!important}.bx.nw .nm::before{content:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:var(--ph,118mm)!important}.rqb td{font-size:11px;padding:0 4px}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}
+@media print{.bar,#tray,.nwn,#addBtn{display:none!important}.bx.nw .nm::before{content:none}.bx.ed{outline:none}body{padding:0}h1{font-size:17px}.meta{margin-bottom:2px}.legend{margin:1px 0}.chart{overflow:visible}.cin{min-width:0}.plot.pc,.plot.pt{height:var(--ph,118mm)!important}.rqb td{font-size:11px;padding:0 4px}.ng{font-size:12px}.bx{font-size:12px}.big1{font-size:20px;margin-bottom:4px}.bigt td,.bigt th{font-size:15px;padding:0 8px;line-height:1.35}.bigt td:first-child{font-size:16px}.bigt td.b{font-size:21px}
 .bigt td.tot{font-size:21px;font-weight:bold;color:#000}.bigt .hb{height:10px}h2{margin:4px 0 2px}.cols>.c1{flex:0 0 60%}}
 #alerts{position:sticky;top:0;z-index:60;background:#1f1d1a;color:#fff;margin:-14px -14px 8px;padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:15px}
 #alerts:empty{display:none}
@@ -444,7 +448,7 @@ td.b{font-weight:bold}
 @media print{.y4{break-before:page;page-break-before:always;margin-top:0}.y4 .hint4{display:none}.y4 .cl4{flex-wrap:wrap;overflow:visible;gap:4px}.y4 .sl{flex:0 0 calc(11.11% - 4px);box-sizing:border-box;padding:2px;gap:2px;break-inside:avoid;border-width:1px}.y4 .sl.now,.y4 .sl.next{background:#fff;border-color:#ddd}.y4 .tm{font-size:16px}.y4 .tm small{font-size:10px}.y4 .ar{font-size:10px}.y4 .sc{font-size:13px;min-height:0;padding:1px 3px;border-width:2px;border-radius:5px}.y4 .sc small{font-size:9px}.y4 .sc.late{box-shadow:none}}
 @media print{#alerts,.nowl{display:none!important}.bx.soon,.bx.late{animation:none;box-shadow:none}.bigt tr.nowr td,.bigt tr.nextr td{background:none}.bigt tr.nowr td:first-child::after,.bigt tr.nextr td:first-child::after{content:none}}
 </style></head><body>
-<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button id="fixBtn" style="background:#c62828">この席で確定</button><button class="sec" id="unfixBtn" style="display:none">確定をやめて組み直す</button><span id="fixNote" style="font-weight:bold;color:#c62828"></span><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らす、「お帰りになりました」「時間を変える」「キャンセル」もここからできます。長押しでつかんで動かすこともできます</span><span id="upd"></span><button class="sec" id="shBtn">🔗 共有</button><span id="shSt" style="font-weight:bold"></span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">${norm.child ? '読み直す' : '食べログノートに戻る'}</button></div>
+<div class="bar">${norm.navJs ? `<button class="sec" onclick="${norm.navJs}(-1)">◀ 前の日</button><button class="sec" onclick="${norm.navJs}(0)">今日</button><button class="sec" onclick="${norm.navJs}(1)">次の日 ▶</button><input type="date" value="${norm.date}" onchange="${norm.navJs}(this.value)" style="font-size:15px;padding:4px">` : ''}<button onclick="window.print()">PDFにする／印刷</button><button id="fixBtn" style="background:#c62828">この席で確定</button><button class="sec" id="unfixBtn" style="display:none">確定をやめて組み直す</button><span id="fixNote" style="font-weight:bold;color:#c62828"></span><button class="sec" id="undoBtn" style="display:none" onclick="${norm.navJs ? norm.navJs + '(\'' + norm.date + '\')' : 'location.reload()'}">動かしたのを元に戻す</button><span class="hint">予約の枠をタップ →「ご来店しました」で薄くなります／「席を変える」で席の移動・追加・減らす、「お帰りになりました」「時間を変える」「キャンセル」もここからできます。長押しでつかんで動かすこともできます</span><button id="addBtn" style="background:#ff6d00">＋新規のお客さん</button><span id="upd"></span><button class="sec" id="shBtn">🔗 共有</button><span id="shSt" style="font-weight:bold"></span><button class="sec" onclick="${norm.reloadJs || 'location.reload()'}">${norm.child ? '読み直す' : '食べログノートに戻る'}</button></div>
 <h1>① カウンター　${mo}月${da}日（${wd}）${arrange ? '' : '<span style="font-size:15px;color:#c45a00">　食べログのまま（並べ直しは当日だけ）</span>'}</h1>
 <div class="meta">${live.length}組 ${people}名　／　${esc(norm.made || '')} 時点の食べログノートから作成${norm.autoNote ? '（' + esc(norm.autoNote) + '）' : ''}　／　${arrange ? 'カウンターは時間そのまま・隣同士に並べ直し済み（食べログ側は書き換えていません）' : 'カウンターも食べログの席のままです'}</div>
 ${ok ? '' : '<div class="ng">※ この日はカウンターがいっぱいで、全員を隣同士に並べきれませんでした。赤い枠は元の席のままです。</div>'}
@@ -513,6 +517,48 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   function follow(){if(!cur||!cur.moved)return;cur.bx.style.transform='translateY('+(lastY+window.scrollY-cur.py)+'px)';}
 
 
+  // ===== ＋新規のお客さん: 整理表の中で枠を足す（食べログには入らない・共有中はほかのタブレットにも出る） =====
+  var ADDK='seiri-add-'+DATE;
+  function addGet(){return lsGet(ADDK,{})||{};}
+  function manIdOf(k){var a=addGet(),r=null;Object.keys(a).forEach(function(i){var x=a[i];if(x&&(x.from+'|'+x.name+'|'+x.n)===k)r=i;});return r;}
+  function manPaint(){document.querySelectorAll('.plot .bx').forEach(function(b){if(manIdOf(b.getAttribute('data-k'))){b.classList.add('nw','man');b.classList.remove('ed');}});}
+  manPaint();
+  function addOpen(){var old=document.getElementById('sp');if(old)old.parentNode.removeChild(old);
+    var now=jstNow(),st=isToday()?Math.ceil(now.m/15)*15:(T0+60);if(st<T0)st=T0;if(st>T1-30)st=T1-30;
+    var opts='';for(var m=T0;m<T1;m+=15)opts+='<option value="'+m+'"'+(m===st?' selected':'')+'>'+hm(m)+'</option>';
+    var groups=[];document.querySelectorAll('.plot').forEach(function(pl){groups.push({lab:pl.classList.contains('pc')?'カウンター':'テーブル・個室',rows:rowsOf(pl)});});
+    var sp=document.createElement('div');sp.id='sp';sp.dataset.t=Date.now();var n=2,sel=[];
+    var h='<div class="cd ad"><h3>＋新規のお客さん</h3><p class="sm">整理表にだけ枠を足します（食べログノートには入りません）。共有中のタブレットにも出ます。</p>'
+      +'<label>お名前</label><input id="adN" value="新規" autocomplete="off">'
+      +'<label>人数</label><div class="nb">'+[1,2,3,4,5,6,7,8].map(function(i){return '<button class="np'+(i===n?' on':'')+'" data-n="'+i+'">'+i+'名</button>';}).join('')+'</div>'
+      +'<div class="row2"><div><label>来店時刻</label><select id="adA">'+opts+'</select></div><div><label>いる時間</label><select id="adL"><option value="60">60分</option><option value="90" selected>90分</option><option value="120">120分</option></select></div></div>'
+      +'<label>席（タップで選ぶ・いくつでも。点線は同じ時間に別の予約）</label>';
+    groups.forEach(function(g){h+='<div class="gl">'+g.lab+'</div><div class="gs">';g.rows.forEach(function(r){h+='<button class="st" data-n="'+r.replace(/"/g,'&quot;')+'">'+r+'<small></small></button>';});h+='</div>';});
+    h+='<div class="now"></div><div class="ft"><button class="cx">やめる</button><button class="ok">この枠を足す</button></div></div>';
+    sp.innerHTML=h;document.body.appendChild(sp);
+    function span(){var a=+sp.querySelector('#adA').value;return [a,Math.min(T1,a+ +sp.querySelector('#adL').value)];}
+    function paint(){var t=span(),bz={};document.querySelectorAll('.plot .bx').forEach(function(o){if(o.classList.contains('cxl')||o.classList.contains('park'))return;var oa=+o.getAttribute('data-a'),oe=+o.getAttribute('data-b');
+        if(oa<t[1]&&t[0]<oe){var nm=(o.querySelector('.nm')||{}).textContent||'';seatsOfBox(o).forEach(function(x){bz[x]=nm;});}});
+      [].forEach.call(sp.querySelectorAll('.st'),function(b){var r=b.getAttribute('data-n');b.classList.toggle('on',sel.indexOf(r)>=0);b.classList.toggle('bz',!!bz[r]&&sel.indexOf(r)<0);b.querySelector('small').textContent=bz[r]||'';});
+      [].forEach.call(sp.querySelectorAll('.np'),function(b){b.classList.toggle('on',+b.getAttribute('data-n')===n);});
+      sp.querySelector('.now').textContent='えらんだ席: '+(sel.length?sel.join('+'):'なし')+'　'+hm(t[0])+'〜'+hm(t[1])+'　'+n+'名';}
+    paint();sp.querySelector('#adA').onchange=paint;sp.querySelector('#adL').onchange=paint;
+    sp.addEventListener('click',function(ev){var t=ev.target.closest('button');if(ev.target===sp&&Date.now()-sp.dataset.t<600)return;if(ev.target===sp||(t&&t.classList.contains('cx'))){sp.parentNode.removeChild(sp);return;}if(!t)return;
+      if(t.classList.contains('np')){n=+t.getAttribute('data-n');paint();return;}
+      if(t.classList.contains('st')){var r=t.getAttribute('data-n'),i=sel.indexOf(r);if(i>=0)sel.splice(i,1);else sel.push(r);paint();return;}
+      if(t.classList.contains('ok')){if(!sel.length){alert('席を1つ以上えらんでください');return;}
+        var all=[];groups.forEach(function(g){g.rows.forEach(function(r){if(sel.indexOf(r)>=0)all.push(r);});});
+        var tt=span();if(!clashOk(clashes('',all,tt[0],tt[1])))return;
+        var nm=(sp.querySelector('#adN').value||'').replace(/\\s+/g,' ').trim()||'新規',a=addGet(),fr=hm(tt[0])+':00',base=nm,c=2,keys={};
+        uniqBoxes().forEach(function(b){keys[b.getAttribute('data-k')]=1;});while(keys[fr+'|'+nm+'|'+n]){nm=base+c;c++;}
+        var id='m'+Date.now().toString(36),before=items();a[id]={from:fr,to:hm(tt[1])+':00',name:nm,n:n,seats:all};lsSet(ADDK,a);
+        var mv=lsGet(MKEY,{});mv[fr+'|'+nm+'|'+n]=all.slice().sort();lsSet(MKEY,mv);
+        UNDO.push({b:before,a:items()});if(UNDO.length>20)UNDO.shift();sp.parentNode.removeChild(sp);
+        shPush();if(window.__seiriRedraw)window.__seiriRedraw();}});}
+  document.getElementById('addBtn').onclick=addOpen;
+  function addDel(k,nm){var id=manIdOf(k);if(!id)return;if(!confirm(nm+' 様の枠を消しますか？（整理表で足した枠です）'))return;
+    var before=items(),a=addGet();delete a[id];lsSet(ADDK,a);var mv=lsGet(MKEY,{});delete mv[k];lsSet(MKEY,mv);
+    UNDO.push({b:before,a:items()});shPush();if(window.__seiriRedraw)window.__seiriRedraw();}
   // 名前を押したとき: 来店チェック／席を変える
   var AKEY='seiri-arr-'+DATE;
   function arrList(){try{return JSON.parse(localStorage.getItem(AKEY)||'[]');}catch(e){return window.__seiriArr||[];}}
@@ -588,7 +634,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     var sp=document.createElement('div');sp.id='sp';sp.dataset.t=Date.now();
     var e=function(x){return String(x).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});};
     sp.innerHTML='<div class="cd mn"><h3>'+e(nm)+' 様　'+p+'名　'+e(tt)+'</h3><p class="sm">席: '+e(seatsOf(id).join('+'))+(came?'　<b style="color:#1e7a3c">来店済み</b>':'')+'</p>'+(tel?'<a class="tel" href="tel:'+e(tel.replace(/[^0-9+]/g,''))+'">📞 '+e(tel)+'（押すと電話）</a>':'<p class="sm">電話番号: 登録なし</p>')+(q?'<p class="sm" style="color:#c45a00">要望: '+e(q)+'</p>':'')
-      +'<div class="mb"><button class="arr1 '+(came?'':'ok')+'">'+(came?'来店を取り消す':'ご来店しました')+'</button><button class="gone1">お帰りになりました（今の時刻で枠を終わらせる）</button>'+(isToday()?'<button class="ext1">お帰りを15分のばす</button>':'')+'<button class="tm1">時間を変える（来店・お帰りの時刻）</button>'+(tmGet()[k]?'<button class="tm0">予約どおりの時間に戻す</button>':'')+'<button class="seat">席を変える・席を減らす／足す</button><button class="park1">一時置きにする（いったんよけて、あとで席を選ぶ）</button><button class="cx1" style="color:#c00000;border-color:#c00000">'+(cxList().indexOf(k)>=0?'キャンセルを取り消す':'キャンセルにする（来なかった・時間切れ）')+'</button><button class="cx">閉じる</button></div></div>';
+      +'<div class="mb"><button class="arr1 '+(came?'':'ok')+'">'+(came?'来店を取り消す':'ご来店しました')+'</button><button class="gone1">お帰りになりました（今の時刻で枠を終わらせる）</button>'+(isToday()?'<button class="ext1">お帰りを15分のばす</button>':'')+'<button class="tm1">時間を変える（来店・お帰りの時刻）</button>'+(tmGet()[k]?'<button class="tm0">予約どおりの時間に戻す</button>':'')+(manIdOf(k)?'<button class="del1" style="color:#c00000;border-color:#c00000">この枠を消す（整理表で足した枠）</button>':'')+'<button class="seat">席を変える・席を減らす／足す</button><button class="park1">一時置きにする（いったんよけて、あとで席を選ぶ）</button><button class="cx1" style="color:#c00000;border-color:#c00000">'+(cxList().indexOf(k)>=0?'キャンセルを取り消す':'キャンセルにする（来なかった・時間切れ）')+'</button><button class="cx">閉じる</button></div></div>';
     document.body.appendChild(sp);
     sp.addEventListener('click',function(ev){var t=ev.target.closest('button');if(ev.target===sp&&Date.now()-sp.dataset.t<600)return;
       if(ev.target===sp||(t&&t.classList.contains('cx'))){sp.parentNode.removeChild(sp);return;}if(!t)return;
@@ -599,6 +645,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
         sp.parentNode.removeChild(sp);timeSet(id,k,a,nw,1);return;}
       if(t.classList.contains('tm1')){sp.parentNode.removeChild(sp);openTime(bx);return;}
       if(t.classList.contains('ext1')){var a2=+bx.getAttribute('data-a'),e2=Math.min(T1,+bx.getAttribute('data-b')+15);if(!clashOk(clashes(id,seatsOf(id),a2,e2)))return;sp.parentNode.removeChild(sp);timeSet(id,k,a2,e2,0);return;}
+      if(t.classList.contains('del1')){sp.parentNode.removeChild(sp);addDel(k,nm);return;}
       if(t.classList.contains('park1')){sp.parentNode.removeChild(sp);parkSet(id,true);return;}
       if(t.classList.contains('cx1')){var c=cxList(),j=c.indexOf(k);
         if(j<0){if(!confirm(nm+' 様（'+tt+'）をキャンセルにしますか？\\n赤い枠で残り、この席は空いている扱いになります。食べログの予約は変わりません。'))return;c.push(k);}else c.splice(j,1);
@@ -768,7 +815,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
   function shPin(){return lsGet('seiri-pin','');}
   function rpc(fn,args){return fetch(SHU+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SHK,'Authorization':'Bearer '+SHK,'Content-Type':'application/json'},body:JSON.stringify(args)}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
   function items(){var o={};arrList().forEach(function(k){o['a:'+k]=1;});cxList().forEach(function(k){o['c:'+k]=1;});var t=tmGet();Object.keys(t).forEach(function(k){o['t:'+k]=t[k];});
-    var mv=lsGet(MKEY,{});Object.keys(mv).forEach(function(k){o['m:'+k]=mv[k];});lsGet(PKEY,[]).forEach(function(k){o['p:'+k]=1;});var f=fixGet();if(f)o.fix=f;return o;}
+    var mv=lsGet(MKEY,{});Object.keys(mv).forEach(function(k){o['m:'+k]=mv[k];});lsGet(PKEY,[]).forEach(function(k){o['p:'+k]=1;});var f=fixGet();if(f)o.fix=f;var ad=addGet();Object.keys(ad).forEach(function(i){if(ad[i])o['x:'+i]=ad[i];});return o;}
   function same(a,b){return JSON.stringify(a)===JSON.stringify(b);}
   function syGet(){return lsGet(SYK,{rev:0,last:null});}
   function shSt(t,c){var e=document.getElementById('shSt');if(e){e.textContent=t;e.style.color=c||'#1e7a3c';}}
@@ -788,6 +835,7 @@ ${reqs.length ? `<table class="p3t"><tr><th>時間</th><th>お名前</th><th>人
     if(c==='c'){var x=cxList(),j=x.indexOf(key);if(v&&j<0)x.push(key);if(!v&&j>=0)x.splice(j,1);cxSave(x);return 'lite';}
     if(c==='t'){var o=tmGet();if(v)o[key]=v;else delete o[key];tmSave(o);return 'lite';}
     if(c==='m'){var m=lsGet(MKEY,{});if(v)m[key]=v;else delete m[key];lsSet(MKEY,m);return 'full';}
+    if(c==='x'){var ad=addGet();if(v)ad[key]=v;else delete ad[key];lsSet(ADDK,ad);return 'full';}
     if(c==='p'){var p=lsGet(PKEY,[]),q=p.indexOf(key);if(v&&q<0)p.push(key);if(!v&&q>=0)p.splice(q,1);lsSet(PKEY,p);return 'full';}
     return '';}
   function lite(){document.querySelectorAll('.plot .bx').forEach(function(b){if(b.hasAttribute('data-a0'))setBoxTime(b,+b.getAttribute('data-a0'),+b.getAttribute('data-b0'));b.classList.remove('gone','tm');});
